@@ -10,19 +10,20 @@ import (
 
 // SeedService initializes the configured user and root node.
 type SeedService struct {
-	users repository.UserRepository
-	nodes repository.NodeRepository
+	users             repository.UserRepository
+	nodes             repository.NodeRepository
+	defaultQuotaBytes int64
 }
 
 // NewSeedService creates a new SeedService.
-func NewSeedService(users repository.UserRepository, nodes repository.NodeRepository) *SeedService {
-	return &SeedService{users: users, nodes: nodes}
+func NewSeedService(users repository.UserRepository, nodes repository.NodeRepository, defaultQuotaBytes int64) *SeedService {
+	return &SeedService{users: users, nodes: nodes, defaultQuotaBytes: defaultQuotaBytes}
 }
 
 // Seed ensures the configured user exists and has a root node.
 // Returns the user ID.
-func (s *SeedService) Seed(email, password string) (int64, error) {
-	userID, err := s.users.Upsert(email, password)
+func (s *SeedService) Seed(email, password string, isAdmin bool) (int64, error) {
+	userID, err := s.users.Upsert(email, password, isAdmin, s.defaultQuotaBytes)
 	if err != nil {
 		return 0, fmt.Errorf("seeding user: %w", err)
 	}

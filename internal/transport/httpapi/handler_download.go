@@ -14,15 +14,13 @@ import (
 type DownloadHandler struct {
 	auth      *service.AuthService
 	downloads *service.DownloadService
-	userID    int64
 }
 
 // NewDownloadHandler creates a new DownloadHandler.
-func NewDownloadHandler(auth *service.AuthService, downloads *service.DownloadService, userID int64) *DownloadHandler {
+func NewDownloadHandler(auth *service.AuthService, downloads *service.DownloadService) *DownloadHandler {
 	return &DownloadHandler{
 		auth:      auth,
 		downloads: downloads,
-		userID:    userID,
 	}
 }
 
@@ -40,8 +38,8 @@ func (h *DownloadHandler) HandleDownload(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	token, err := h.auth.Validate(r.URL.Query().Get("token"))
-	if err != nil || token == nil {
+	authed, err := h.auth.Validate(r.URL.Query().Get("token"))
+	if err != nil || authed == nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
@@ -59,7 +57,7 @@ func (h *DownloadHandler) HandleDownload(w http.ResponseWriter, r *http.Request)
 	}
 
 	path := vo.NewCloudPath(cloudPath)
-	result, err := h.downloads.Resolve(h.userID, path)
+	result, err := h.downloads.Resolve(authed.UserID, path)
 	if err != nil {
 		http.Error(w, "Not found", http.StatusNotFound)
 		return

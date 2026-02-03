@@ -60,3 +60,12 @@ type SpaceInfo struct {
 	BytesTotal int64 `json:"bytes_total"`
 	BytesUsed  int64 `json:"bytes_used"`
 }
+
+// UserInfo represents a user in admin API responses (password omitted).
+type UserInfo struct {
+	ID         int64  `json:"id"`
+	Email      string `json:"email"`
+	IsAdmin    bool   `json:"is_admin"`
+	QuotaBytes int64  `json:"quota_bytes"`
+	Created    int64  `json:"created"`
+}

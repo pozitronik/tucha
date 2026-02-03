@@ -26,8 +26,8 @@ func (h *UploadHandler) HandleUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := h.auth.Validate(r.URL.Query().Get("token"))
-	if err != nil || token == nil {
+	authed, err := h.auth.Validate(r.URL.Query().Get("token"))
+	if err != nil || authed == nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}

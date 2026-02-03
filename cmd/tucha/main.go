@@ -56,16 +56,17 @@ func main() {
 
 	// --- Application services ---
 
-	seedSvc := service.NewSeedService(userRepo, nodeRepo)
-	userID, err := seedSvc.Seed(cfg.User.Email, cfg.User.Password)
+	seedSvc := service.NewSeedService(userRepo, nodeRepo, cfg.Storage.QuotaBytes)
+	userID, err := seedSvc.Seed(cfg.User.Email, cfg.User.Password, true)
 	if err != nil {
 		log.Fatalf("Failed to seed user: %v", err)
 	}
 	log.Printf("  User ID: %d", userID)
 
-	authSvc := service.NewAuthService(tokenRepo)
-	tokenSvc := service.NewTokenService(tokenRepo)
-	quotaSvc := service.NewQuotaService(nodeRepo, cfg.Storage.QuotaBytes)
+	authSvc := service.NewAuthService(tokenRepo, userRepo)
+	tokenSvc := service.NewTokenService(tokenRepo, userRepo)
+	quotaSvc := service.NewQuotaService(nodeRepo, userRepo)
+	userSvc := service.NewUserService(userRepo, nodeRepo, cfg.Storage.QuotaBytes)
 	folderSvc := service.NewFolderService(nodeRepo)
 	fileSvc := service.NewFileService(nodeRepo, contentRepo, diskStore, quotaSvc)
 	uploadSvc := service.NewUploadService(mrCloudHasher, diskStore, contentRepo)
@@ -75,18 +76,19 @@ func main() {
 
 	presenter := httpapi.NewPresenter()
 
-	tokenH := httpapi.NewTokenHandler(tokenSvc, cfg.User.Email, cfg.User.Password, userID)
-	csrfH := httpapi.NewCSRFHandler(authSvc, cfg.User.Email)
-	dispatchH := httpapi.NewDispatchHandler(authSvc, cfg.Server.ExternalURL, cfg.User.Email)
-	folderH := httpapi.NewFolderHandler(authSvc, folderSvc, presenter, cfg.User.Email, userID)
-	fileH := httpapi.NewFileHandler(authSvc, fileSvc, presenter, cfg.User.Email, userID)
+	tokenH := httpapi.NewTokenHandler(tokenSvc)
+	csrfH := httpapi.NewCSRFHandler(authSvc)
+	dispatchH := httpapi.NewDispatchHandler(authSvc, cfg.Server.ExternalURL)
+	folderH := httpapi.NewFolderHandler(authSvc, folderSvc, presenter)
+	fileH := httpapi.NewFileHandler(authSvc, fileSvc, presenter)
 	uploadH := httpapi.NewUploadHandler(authSvc, uploadSvc)
-	downloadH := httpapi.NewDownloadHandler(authSvc, downloadSvc, userID)
-	spaceH := httpapi.NewSpaceHandler(authSvc, quotaSvc, cfg.User.Email, userID)
+	downloadH := httpapi.NewDownloadHandler(authSvc, downloadSvc)
+	spaceH := httpapi.NewSpaceHandler(authSvc, quotaSvc)
 	selfConfigH := httpapi.NewSelfConfigureHandler(cfg.Endpoints)
+	userH := httpapi.NewUserHandler(authSvc, userSvc)
 
 	mux := http.NewServeMux()
-	httpapi.RegisterRoutes(mux, tokenH, csrfH, dispatchH, folderH, fileH, uploadH, downloadH, spaceH, selfConfigH)
+	httpapi.RegisterRoutes(mux, tokenH, csrfH, dispatchH, folderH, fileH, uploadH, downloadH, spaceH, selfConfigH, userH)
 
 	// --- Start server ---
 

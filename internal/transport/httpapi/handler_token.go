@@ -10,20 +10,12 @@ const tokenTTLSeconds = 86400
 
 // TokenHandler handles OAuth2 password grant authentication.
 type TokenHandler struct {
-	tokens   *service.TokenService
-	email    string
-	password string
-	userID   int64
+	tokens *service.TokenService
 }
 
 // NewTokenHandler creates a new TokenHandler.
-func NewTokenHandler(tokens *service.TokenService, email, password string, userID int64) *TokenHandler {
-	return &TokenHandler{
-		tokens:   tokens,
-		email:    email,
-		password: password,
-		userID:   userID,
-	}
+func NewTokenHandler(tokens *service.TokenService) *TokenHandler {
+	return &TokenHandler{tokens: tokens}
 }
 
 // HandleToken handles POST /token.
@@ -65,21 +57,12 @@ func (h *TokenHandler) HandleToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if username != h.email || password != h.password {
+	token, err := h.tokens.Authenticate(username, password, tokenTTLSeconds)
+	if err != nil {
 		writeJSON(w, http.StatusOK, OAuthToken{
 			Error:            "invalid_grant",
 			ErrorCode:        4,
 			ErrorDescription: "Invalid credentials",
-		})
-		return
-	}
-
-	token, err := h.tokens.Create(h.userID, tokenTTLSeconds)
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, OAuthToken{
-			Error:            "server_error",
-			ErrorCode:        5,
-			ErrorDescription: "Failed to create token",
 		})
 		return
 	}

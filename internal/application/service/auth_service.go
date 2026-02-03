@@ -3,23 +3,31 @@
 package service
 
 import (
-	"tucha/internal/domain/entity"
 	"tucha/internal/domain/repository"
 )
 
-// AuthService validates access tokens without depending on HTTP.
+// AuthenticatedUser holds the resolved user context from a validated token.
+type AuthenticatedUser struct {
+	UserID    int64
+	Email     string
+	IsAdmin   bool
+	CSRFToken string
+}
+
+// AuthService validates access tokens and resolves user context.
 type AuthService struct {
 	tokens repository.TokenRepository
+	users  repository.UserRepository
 }
 
 // NewAuthService creates a new AuthService.
-func NewAuthService(tokens repository.TokenRepository) *AuthService {
-	return &AuthService{tokens: tokens}
+func NewAuthService(tokens repository.TokenRepository, users repository.UserRepository) *AuthService {
+	return &AuthService{tokens: tokens, users: users}
 }
 
-// Validate checks an access token string and returns the associated token entity.
-// Returns nil, nil if the token is not found or expired.
-func (s *AuthService) Validate(accessToken string) (*entity.Token, error) {
+// Validate checks an access token string and returns the authenticated user context.
+// Returns nil, nil if the token is not found, expired, or the user no longer exists.
+func (s *AuthService) Validate(accessToken string) (*AuthenticatedUser, error) {
 	if accessToken == "" {
 		return nil, nil
 	}
@@ -36,5 +44,18 @@ func (s *AuthService) Validate(accessToken string) (*entity.Token, error) {
 		return nil, nil
 	}
 
-	return token, nil
+	user, err := s.users.GetByID(token.UserID)
+	if err != nil {
+		return nil, err
+	}
+	if user == nil {
+		return nil, nil
+	}
+
+	return &AuthenticatedUser{
+		UserID:    user.ID,
+		Email:     user.Email,
+		IsAdmin:   user.IsAdmin,
+		CSRFToken: token.CSRFToken,
+	}, nil
 }

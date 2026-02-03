@@ -12,10 +12,12 @@ import (
 
 const schema = `
 CREATE TABLE IF NOT EXISTS users (
-    id        INTEGER PRIMARY KEY AUTOINCREMENT,
-    email     TEXT NOT NULL UNIQUE,
-    password  TEXT NOT NULL,
-    created   INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    email       TEXT NOT NULL UNIQUE,
+    password    TEXT NOT NULL,
+    is_admin    INTEGER NOT NULL DEFAULT 0,
+    quota_bytes INTEGER NOT NULL DEFAULT 17179869184,
+    created     INTEGER NOT NULL DEFAULT (strftime('%s','now'))
 );
 
 CREATE TABLE IF NOT EXISTS nodes (
@@ -44,7 +46,7 @@ CREATE TABLE IF NOT EXISTS contents (
 
 CREATE TABLE IF NOT EXISTS tokens (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id       INTEGER NOT NULL REFERENCES users(id),
+    user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     access_token  TEXT NOT NULL UNIQUE,
     refresh_token TEXT NOT NULL UNIQUE,
     csrf_token    TEXT NOT NULL,
@@ -84,6 +86,16 @@ func Open(dbPath string) (*DB, error) {
 	if _, err := conn.Exec(schema); err != nil {
 		conn.Close()
 		return nil, fmt.Errorf("initializing schema: %w", err)
+	}
+
+	// Migrations for existing databases that lack the new columns.
+	migrations := []string{
+		"ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0",
+		"ALTER TABLE users ADD COLUMN quota_bytes INTEGER NOT NULL DEFAULT 17179869184",
+	}
+	for _, m := range migrations {
+		// Ignore errors -- column already exists on fresh or previously migrated DBs.
+		conn.Exec(m)
 	}
 
 	return &DB{conn: conn}, nil

@@ -13,8 +13,6 @@ type FolderHandler struct {
 	auth      *service.AuthService
 	folders   *service.FolderService
 	presenter *Presenter
-	email     string
-	userID    int64
 }
 
 // NewFolderHandler creates a new FolderHandler.
@@ -22,22 +20,18 @@ func NewFolderHandler(
 	auth *service.AuthService,
 	folders *service.FolderService,
 	presenter *Presenter,
-	email string,
-	userID int64,
 ) *FolderHandler {
 	return &FolderHandler{
 		auth:      auth,
 		folders:   folders,
 		presenter: presenter,
-		email:     email,
-		userID:    userID,
 	}
 }
 
 // HandleFolder handles GET /api/v2/folder - directory listing with pagination.
 func (h *FolderHandler) HandleFolder(w http.ResponseWriter, r *http.Request) {
-	token, err := h.auth.Validate(r.URL.Query().Get("access_token"))
-	if err != nil || token == nil {
+	authed, err := h.auth.Validate(r.URL.Query().Get("access_token"))
+	if err != nil || authed == nil {
 		writeEnvelope(w, "", 403, "user")
 		return
 	}
@@ -56,25 +50,25 @@ func (h *FolderHandler) HandleFolder(w http.ResponseWriter, r *http.Request) {
 		limit = 65535
 	}
 
-	folder, err := h.folders.Get(h.userID, path)
+	folder, err := h.folders.Get(authed.UserID, path)
 	if err != nil {
-		writeHomeError(w, h.email, 500, "unknown")
+		writeHomeError(w, authed.Email, 500, "unknown")
 		return
 	}
 	if folder == nil {
-		writeHomeError(w, h.email, 404, "not_exists")
+		writeHomeError(w, authed.Email, 404, "not_exists")
 		return
 	}
 
-	children, err := h.folders.ListChildren(h.userID, path, offset, limit)
+	children, err := h.folders.ListChildren(authed.UserID, path, offset, limit)
 	if err != nil {
-		writeHomeError(w, h.email, 500, "unknown")
+		writeHomeError(w, authed.Email, 500, "unknown")
 		return
 	}
 
-	folderCount, fileCount, err := h.folders.CountChildren(h.userID, path)
+	folderCount, fileCount, err := h.folders.CountChildren(authed.UserID, path)
 	if err != nil {
-		writeHomeError(w, h.email, 500, "unknown")
+		writeHomeError(w, authed.Email, 500, "unknown")
 		return
 	}
 
@@ -83,7 +77,7 @@ func (h *FolderHandler) HandleFolder(w http.ResponseWriter, r *http.Request) {
 		child := &children[i]
 		var subCount *FolderCount
 		if child.IsFolder() {
-			sf, sfi, _ := h.folders.CountChildren(h.userID, child.Home)
+			sf, sfi, _ := h.folders.CountChildren(authed.UserID, child.Home)
 			subCount = &FolderCount{Folders: sf, Files: sfi}
 		}
 		items = append(items, h.presenter.NodeToFolderItem(child, subCount))
@@ -92,7 +86,7 @@ func (h *FolderHandler) HandleFolder(w http.ResponseWriter, r *http.Request) {
 	count := FolderCount{Folders: folderCount, Files: fileCount}
 	listing := h.presenter.BuildFolderListing(folder, count, items)
 
-	writeSuccess(w, h.email, listing)
+	writeSuccess(w, authed.Email, listing)
 }
 
 // HandleFolderAdd handles POST /api/v2/folder/add - create folder.
@@ -102,33 +96,33 @@ func (h *FolderHandler) HandleFolderAdd(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	token, err := h.auth.Validate(r.URL.Query().Get("access_token"))
-	if err != nil || token == nil {
+	authed, err := h.auth.Validate(r.URL.Query().Get("access_token"))
+	if err != nil || authed == nil {
 		writeEnvelope(w, "", 403, "user")
 		return
 	}
 
 	if err := r.ParseForm(); err != nil {
-		writeHomeError(w, h.email, 400, "invalid")
+		writeHomeError(w, authed.Email, 400, "invalid")
 		return
 	}
 
 	homePath := r.FormValue("home")
 	if homePath == "" {
-		writeHomeError(w, h.email, 400, "required")
+		writeHomeError(w, authed.Email, 400, "required")
 		return
 	}
 
 	path := vo.NewCloudPath(homePath)
-	node, err := h.folders.CreateFolder(h.userID, path)
+	node, err := h.folders.CreateFolder(authed.UserID, path)
 	if err != nil {
 		if err == service.ErrAlreadyExists {
-			writeHomeError(w, h.email, 400, "exists")
+			writeHomeError(w, authed.Email, 400, "exists")
 			return
 		}
-		writeHomeError(w, h.email, 400, "invalid")
+		writeHomeError(w, authed.Email, 400, "invalid")
 		return
 	}
 
-	writeSuccess(w, h.email, node.Home.String())
+	writeSuccess(w, authed.Email, node.Home.String())
 }

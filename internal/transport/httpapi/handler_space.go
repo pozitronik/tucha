@@ -8,33 +8,29 @@ import (
 
 // SpaceHandler handles storage quota information.
 type SpaceHandler struct {
-	auth   *service.AuthService
-	quota  *service.QuotaService
-	email  string
-	userID int64
+	auth  *service.AuthService
+	quota *service.QuotaService
 }
 
 // NewSpaceHandler creates a new SpaceHandler.
-func NewSpaceHandler(auth *service.AuthService, quota *service.QuotaService, email string, userID int64) *SpaceHandler {
+func NewSpaceHandler(auth *service.AuthService, quota *service.QuotaService) *SpaceHandler {
 	return &SpaceHandler{
-		auth:   auth,
-		quota:  quota,
-		email:  email,
-		userID: userID,
+		auth:  auth,
+		quota: quota,
 	}
 }
 
 // HandleSpace handles GET /api/v2/user/space - storage quota information.
 func (h *SpaceHandler) HandleSpace(w http.ResponseWriter, r *http.Request) {
-	token, err := h.auth.Validate(r.URL.Query().Get("access_token"))
-	if err != nil || token == nil {
+	authed, err := h.auth.Validate(r.URL.Query().Get("access_token"))
+	if err != nil || authed == nil {
 		writeEnvelope(w, "", 403, "user")
 		return
 	}
 
-	usage, err := h.quota.GetUsage(h.userID)
+	usage, err := h.quota.GetUsage(authed.UserID)
 	if err != nil {
-		writeHomeError(w, h.email, 500, "unknown")
+		writeHomeError(w, authed.Email, 500, "unknown")
 		return
 	}
 
@@ -44,5 +40,5 @@ func (h *SpaceHandler) HandleSpace(w http.ResponseWriter, r *http.Request) {
 		BytesUsed:  usage.BytesUsed,
 	}
 
-	writeSuccess(w, h.email, space)
+	writeSuccess(w, authed.Email, space)
 }

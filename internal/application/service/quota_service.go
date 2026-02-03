@@ -4,15 +4,15 @@ import (
 	"tucha/internal/domain/repository"
 )
 
-// QuotaService checks storage quota usage.
+// QuotaService checks storage quota usage on a per-user basis.
 type QuotaService struct {
-	nodes      repository.NodeRepository
-	quotaBytes int64
+	nodes repository.NodeRepository
+	users repository.UserRepository
 }
 
 // NewQuotaService creates a new QuotaService.
-func NewQuotaService(nodes repository.NodeRepository, quotaBytes int64) *QuotaService {
-	return &QuotaService{nodes: nodes, quotaBytes: quotaBytes}
+func NewQuotaService(nodes repository.NodeRepository, users repository.UserRepository) *QuotaService {
+	return &QuotaService{nodes: nodes, users: users}
 }
 
 // SpaceUsage holds the result of a quota check.
@@ -24,22 +24,38 @@ type SpaceUsage struct {
 
 // GetUsage returns the current storage usage for the given user.
 func (s *QuotaService) GetUsage(userID int64) (*SpaceUsage, error) {
+	user, err := s.users.GetByID(userID)
+	if err != nil {
+		return nil, err
+	}
+	if user == nil {
+		return nil, ErrNotFound
+	}
+
 	used, err := s.nodes.TotalSize(userID)
 	if err != nil {
 		return nil, err
 	}
 	return &SpaceUsage{
-		Overquota:  used > s.quotaBytes,
-		BytesTotal: s.quotaBytes,
+		Overquota:  used > user.QuotaBytes,
+		BytesTotal: user.QuotaBytes,
 		BytesUsed:  used,
 	}, nil
 }
 
-// CheckQuota returns true if adding additionalBytes would exceed the quota.
+// CheckQuota returns true if adding additionalBytes would exceed the user's quota.
 func (s *QuotaService) CheckQuota(userID int64, additionalBytes int64) (bool, error) {
+	user, err := s.users.GetByID(userID)
+	if err != nil {
+		return false, err
+	}
+	if user == nil {
+		return false, ErrNotFound
+	}
+
 	used, err := s.nodes.TotalSize(userID)
 	if err != nil {
 		return false, err
 	}
-	return used+additionalBytes > s.quotaBytes, nil
+	return used+additionalBytes > user.QuotaBytes, nil
 }

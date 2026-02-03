@@ -12,22 +12,20 @@ import (
 type DispatchHandler struct {
 	auth        *service.AuthService
 	externalURL string
-	email       string
 }
 
 // NewDispatchHandler creates a new DispatchHandler.
-func NewDispatchHandler(auth *service.AuthService, externalURL, email string) *DispatchHandler {
+func NewDispatchHandler(auth *service.AuthService, externalURL string) *DispatchHandler {
 	return &DispatchHandler{
 		auth:        auth,
 		externalURL: strings.TrimRight(externalURL, "/"),
-		email:       email,
 	}
 }
 
 // HandleDispatcher handles POST /api/v2/dispatcher/.
 func (h *DispatchHandler) HandleDispatcher(w http.ResponseWriter, r *http.Request) {
-	token, err := h.auth.Validate(r.URL.Query().Get("access_token"))
-	if err != nil || token == nil {
+	authed, err := h.auth.Validate(r.URL.Query().Get("access_token"))
+	if err != nil || authed == nil {
 		writeEnvelope(w, "", 403, "user")
 		return
 	}
@@ -48,13 +46,13 @@ func (h *DispatchHandler) HandleDispatcher(w http.ResponseWriter, r *http.Reques
 		"web":                []map[string]string{{"url": h.externalURL + "/"}},
 	}
 
-	writeSuccess(w, h.email, shards)
+	writeSuccess(w, authed.Email, shards)
 }
 
 // HandleOAuthDispatcher handles GET /d and GET /u (OAuth dispatcher).
 func (h *DispatchHandler) HandleOAuthDispatcher(w http.ResponseWriter, r *http.Request) {
-	token, err := h.auth.Validate(r.URL.Query().Get("token"))
-	if err != nil || token == nil {
+	authed, err := h.auth.Validate(r.URL.Query().Get("token"))
+	if err != nil || authed == nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}

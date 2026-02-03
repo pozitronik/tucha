@@ -14,6 +14,7 @@ func RegisterRoutes(
 	downloadH *DownloadHandler,
 	spaceH *SpaceHandler,
 	selfConfigH *SelfConfigureHandler,
+	userH *UserHandler,
 ) {
 	// Service discovery (unauthenticated).
 	mux.HandleFunc("/", selfConfigH.HandleSelfConfigure)
@@ -47,4 +48,10 @@ func RegisterRoutes(
 
 	// User space/quota.
 	mux.HandleFunc("/api/v2/user/space", spaceH.HandleSpace)
+
+	// Admin user management.
+	mux.HandleFunc("/api/v2/admin/user/add", userH.HandleUserAdd)
+	mux.HandleFunc("/api/v2/admin/user/list", userH.HandleUserList)
+	mux.HandleFunc("/api/v2/admin/user/edit", userH.HandleUserEdit)
+	mux.HandleFunc("/api/v2/admin/user/remove", userH.HandleUserRemove)
 }
