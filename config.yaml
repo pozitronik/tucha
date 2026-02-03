@@ -1,0 +1,16 @@
+server:
+  host: "0.0.0.0"
+  port: 8080
+  external_url: "http://localhost:8080"
+
+user:
+  email: "user@tucha.local"
+  password: "apppassword"
+
+storage:
+  db_path: "./data/tucha.db"
+  content_dir: "./data/storage"
+  quota_bytes: 17179869184  # 16 GiB
+
+logging:
+  level: "info"
