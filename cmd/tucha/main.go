@@ -1,4 +1,5 @@
 // Package main is the entry point for the Tucha server.
+// This is the composition root -- the only place that imports infrastructure packages.
 package main
 
 import (
@@ -6,11 +7,12 @@ import (
 	"log"
 	"net/http"
 
-	"tucha/internal/api"
-	"tucha/internal/auth"
+	"tucha/internal/application/service"
 	"tucha/internal/config"
-	"tucha/internal/content"
-	"tucha/internal/storage"
+	"tucha/internal/infrastructure/contentstore"
+	"tucha/internal/infrastructure/hasher"
+	"tucha/internal/infrastructure/sqlite"
+	"tucha/internal/transport/httpapi"
 )
 
 func main() {
@@ -30,40 +32,63 @@ func main() {
 	log.Printf("  Content dir: %s", cfg.Storage.ContentDir)
 	log.Printf("  Quota: %d bytes", cfg.Storage.QuotaBytes)
 
-	// Open database and initialize schema.
-	db, err := storage.Open(cfg.Storage.DBPath)
+	// --- Infrastructure ---
+
+	db, err := sqlite.Open(cfg.Storage.DBPath)
 	if err != nil {
 		log.Fatalf("Failed to open database: %v", err)
 	}
 	defer db.Close()
 
-	// Seed the configured user and root node.
-	userID, err := db.SeedUser(cfg.User.Email, cfg.User.Password)
+	diskStore, err := contentstore.NewDiskStore(cfg.Storage.ContentDir)
+	if err != nil {
+		log.Fatalf("Failed to create content store: %v", err)
+	}
+
+	mrCloudHasher := hasher.NewMrCloud()
+
+	// --- Repositories ---
+
+	userRepo := sqlite.NewUserRepository(db)
+	tokenRepo := sqlite.NewTokenRepository(db)
+	nodeRepo := sqlite.NewNodeRepository(db)
+	contentRepo := sqlite.NewContentRepository(db)
+
+	// --- Application services ---
+
+	seedSvc := service.NewSeedService(userRepo, nodeRepo)
+	userID, err := seedSvc.Seed(cfg.User.Email, cfg.User.Password)
 	if err != nil {
 		log.Fatalf("Failed to seed user: %v", err)
 	}
 	log.Printf("  User ID: %d", userID)
 
-	// Initialize stores.
-	tokenStore := storage.NewTokenStore(db)
-	nodeStore := storage.NewNodeStore(db)
-	contentStore := storage.NewContentStore(db)
+	authSvc := service.NewAuthService(tokenRepo)
+	tokenSvc := service.NewTokenService(tokenRepo)
+	quotaSvc := service.NewQuotaService(nodeRepo, cfg.Storage.QuotaBytes)
+	folderSvc := service.NewFolderService(nodeRepo)
+	fileSvc := service.NewFileService(nodeRepo, contentRepo, diskStore, quotaSvc)
+	uploadSvc := service.NewUploadService(mrCloudHasher, diskStore, contentRepo)
+	downloadSvc := service.NewDownloadService(nodeRepo, diskStore)
 
-	contentFS, err := content.NewStore(cfg.Storage.ContentDir)
-	if err != nil {
-		log.Fatalf("Failed to create content store: %v", err)
-	}
+	// --- Transport (HTTP handlers) ---
 
-	// Initialize auth.
-	authenticator := auth.New(tokenStore)
+	presenter := httpapi.NewPresenter()
 
-	// Set up handlers and routes.
-	handlers := api.NewHandlers(cfg, authenticator, tokenStore, nodeStore, contentStore, contentFS, userID)
+	tokenH := httpapi.NewTokenHandler(tokenSvc, cfg.User.Email, cfg.User.Password, userID)
+	csrfH := httpapi.NewCSRFHandler(authSvc, cfg.User.Email)
+	dispatchH := httpapi.NewDispatchHandler(authSvc, cfg.Server.ExternalURL, cfg.User.Email)
+	folderH := httpapi.NewFolderHandler(authSvc, folderSvc, presenter, cfg.User.Email, userID)
+	fileH := httpapi.NewFileHandler(authSvc, fileSvc, presenter, cfg.User.Email, userID)
+	uploadH := httpapi.NewUploadHandler(authSvc, uploadSvc)
+	downloadH := httpapi.NewDownloadHandler(authSvc, downloadSvc, userID)
+	spaceH := httpapi.NewSpaceHandler(authSvc, quotaSvc, cfg.User.Email, userID)
 
 	mux := http.NewServeMux()
-	handlers.RegisterRoutes(mux)
+	httpapi.RegisterRoutes(mux, tokenH, csrfH, dispatchH, folderH, fileH, uploadH, downloadH, spaceH)
 
-	// Start server.
+	// --- Start server ---
+
 	log.Printf("Tucha server listening on %s", cfg.Addr())
 	if err := http.ListenAndServe(cfg.Addr(), mux); err != nil {
 		log.Fatalf("Server failed: %v", err)
