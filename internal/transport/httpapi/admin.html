@@ -245,7 +245,13 @@ tr:last-child td { border-bottom: none; }
         }
 
         return fetch(url, opts).then(function(resp) {
-            return resp.json().then(function(data) {
+            return resp.text().then(function(text) {
+                var data;
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    return Promise.reject(new Error("Server returned (HTTP " + resp.status + "): " + text.substring(0, 200)));
+                }
                 if (resp.status === 401 || resp.status === 403 || data.status === 403) {
                     logout();
                     return Promise.reject(new Error("Session expired"));
