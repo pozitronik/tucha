@@ -86,9 +86,10 @@ func main() {
 	spaceH := httpapi.NewSpaceHandler(authSvc, quotaSvc)
 	selfConfigH := httpapi.NewSelfConfigureHandler(cfg.Endpoints)
 	userH := httpapi.NewUserHandler(authSvc, userSvc)
+	adminH := httpapi.NewAdminHandler()
 
 	mux := http.NewServeMux()
-	httpapi.RegisterRoutes(mux, tokenH, csrfH, dispatchH, folderH, fileH, uploadH, downloadH, spaceH, selfConfigH, userH)
+	httpapi.RegisterRoutes(mux, tokenH, csrfH, dispatchH, folderH, fileH, uploadH, downloadH, spaceH, selfConfigH, userH, adminH)
 
 	// --- Start server ---
 

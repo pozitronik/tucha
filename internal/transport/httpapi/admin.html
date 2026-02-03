@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tucha Admin</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f5f5f5; color: #333; line-height: 1.5; }
+.container { max-width: 960px; margin: 0 auto; padding: 20px; }
+header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding: 16px 0; border-bottom: 1px solid #ddd; }
+header .user-info { color: #666; }
+h1 { font-size: 1.4em; font-weight: 600; }
+button { cursor: pointer; border: 1px solid #ccc; border-radius: 4px; padding: 6px 14px; font-size: 0.9em; background: #fff; color: #333; }
+button:hover { background: #f0f0f0; }
+button.primary { background: #2563eb; color: #fff; border-color: #2563eb; }
+button.primary:hover { background: #1d4ed8; }
+button.danger { background: #dc2626; color: #fff; border-color: #dc2626; }
+button.danger:hover { background: #b91c1c; }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+input[type="text"], input[type="email"], input[type="password"], input[type="number"] {
+    border: 1px solid #ccc; border-radius: 4px; padding: 6px 10px; font-size: 0.9em; width: 100%;
+}
+input:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37,99,235,0.2); }
+label { display: block; font-size: 0.85em; font-weight: 500; margin-bottom: 4px; color: #555; }
+.form-group { margin-bottom: 12px; }
+.checkbox-group { display: flex; align-items: center; gap: 8px; }
+.checkbox-group input[type="checkbox"] { width: auto; }
+.checkbox-group label { display: inline; margin-bottom: 0; }
+
+/* Login */
+#login-view { display: flex; justify-content: center; align-items: center; min-height: 80vh; }
+.login-box { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 32px; width: 360px; }
+.login-box h1 { margin-bottom: 20px; text-align: center; }
+
+/* Table */
+table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #ddd; border-radius: 4px; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #eee; font-size: 0.9em; }
+th { background: #fafafa; font-weight: 600; cursor: pointer; user-select: none; white-space: nowrap; }
+th:hover { background: #f0f0f0; }
+th .sort-arrow { margin-left: 4px; font-size: 0.7em; color: #999; }
+tr:last-child td { border-bottom: none; }
+.actions { white-space: nowrap; }
+.actions button { margin-right: 4px; padding: 3px 10px; font-size: 0.8em; }
+
+/* Toolbar */
+.toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+
+/* Inline form */
+.inline-form { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin-bottom: 16px; }
+.inline-form h2 { font-size: 1.1em; margin-bottom: 16px; }
+.inline-form .form-actions { display: flex; gap: 8px; margin-top: 16px; }
+.form-row { display: flex; gap: 12px; }
+.form-row .form-group { flex: 1; }
+
+/* Error/feedback */
+.error-msg { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 10px 14px; border-radius: 4px; margin-bottom: 16px; font-size: 0.9em; }
+.success-msg { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; padding: 10px 14px; border-radius: 4px; margin-bottom: 16px; font-size: 0.9em; }
+
+/* Confirm dialog overlay */
+.overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); display: flex; justify-content: center; align-items: center; z-index: 100; }
+.dialog { background: #fff; border-radius: 8px; padding: 24px; width: 400px; }
+.dialog h2 { font-size: 1.1em; margin-bottom: 12px; }
+.dialog p { margin-bottom: 16px; font-size: 0.9em; }
+.dialog .form-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- Login View -->
+<div id="login-view">
+    <div class="login-box">
+        <h1>Tucha Admin</h1>
+        <div id="login-error" class="error-msg hidden"></div>
+        <div class="form-group">
+            <label for="login-email">Email</label>
+            <input type="email" id="login-email" autocomplete="username">
+        </div>
+        <div class="form-group">
+            <label for="login-password">Password</label>
+            <input type="password" id="login-password" autocomplete="current-password">
+        </div>
+        <button class="primary" style="width:100%;margin-top:8px" id="login-btn">Login</button>
+    </div>
+</div>
+
+<!-- Main View -->
+<div id="main-view" class="hidden">
+    <div class="container">
+        <header>
+            <h1>Tucha Admin</h1>
+            <div>
+                <span class="user-info" id="logged-in-email"></span>
+                <button id="logout-btn" style="margin-left:12px">Logout</button>
+            </div>
+        </header>
+
+        <div id="feedback"></div>
+
+        <!-- Add/Edit Form (hidden by default) -->
+        <div id="user-form" class="inline-form hidden">
+            <h2 id="form-title">Add User</h2>
+            <div id="form-error" class="error-msg hidden"></div>
+            <input type="hidden" id="form-user-id">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="form-email">Email</label>
+                    <input type="email" id="form-email">
+                </div>
+                <div class="form-group">
+                    <label for="form-password">Password</label>
+                    <input type="password" id="form-password">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="form-quota">Quota (GB)</label>
+                    <input type="number" id="form-quota" step="0.1" min="0">
+                </div>
+                <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:2px">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="form-admin">
+                        <label for="form-admin">Administrator</label>
+                    </div>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button class="primary" id="form-save-btn">Save</button>
+                <button id="form-cancel-btn">Cancel</button>
+            </div>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="toolbar">
+            <div>Users</div>
+            <button class="primary" id="add-user-btn">Add User</button>
+        </div>
+
+        <!-- User Table -->
+        <table id="user-table">
+            <thead>
+                <tr>
+                    <th data-sort="id">ID <span class="sort-arrow"></span></th>
+                    <th data-sort="email">Email <span class="sort-arrow"></span></th>
+                    <th data-sort="is_admin">Admin <span class="sort-arrow"></span></th>
+                    <th data-sort="quota_bytes">Quota <span class="sort-arrow"></span></th>
+                    <th data-sort="bytes_used">Used <span class="sort-arrow"></span></th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="user-tbody"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Delete Confirmation Dialog -->
+<div id="delete-dialog" class="overlay hidden">
+    <div class="dialog">
+        <h2>Delete User</h2>
+        <p>Are you sure you want to delete <strong id="delete-user-email"></strong>?</p>
+        <div class="form-actions">
+            <button class="danger" id="delete-confirm-btn">Delete</button>
+            <button id="delete-cancel-btn">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    "use strict";
+
+    // --- State ---
+    var token = sessionStorage.getItem("tucha_admin_token") || "";
+    var userEmail = sessionStorage.getItem("tucha_admin_email") || "";
+    var users = [];
+    var sortCol = "id";
+    var sortAsc = true;
+    var deleteTargetId = null;
+
+    // --- DOM refs ---
+    var loginView = document.getElementById("login-view");
+    var mainView = document.getElementById("main-view");
+    var loginEmailInput = document.getElementById("login-email");
+    var loginPasswordInput = document.getElementById("login-password");
+    var loginBtn = document.getElementById("login-btn");
+    var loginError = document.getElementById("login-error");
+    var loggedInEmail = document.getElementById("logged-in-email");
+    var logoutBtn = document.getElementById("logout-btn");
+    var feedback = document.getElementById("feedback");
+    var userForm = document.getElementById("user-form");
+    var formTitle = document.getElementById("form-title");
+    var formError = document.getElementById("form-error");
+    var formUserId = document.getElementById("form-user-id");
+    var formEmail = document.getElementById("form-email");
+    var formPassword = document.getElementById("form-password");
+    var formQuota = document.getElementById("form-quota");
+    var formAdmin = document.getElementById("form-admin");
+    var formSaveBtn = document.getElementById("form-save-btn");
+    var formCancelBtn = document.getElementById("form-cancel-btn");
+    var addUserBtn = document.getElementById("add-user-btn");
+    var userTbody = document.getElementById("user-tbody");
+    var deleteDialog = document.getElementById("delete-dialog");
+    var deleteUserEmail = document.getElementById("delete-user-email");
+    var deleteConfirmBtn = document.getElementById("delete-confirm-btn");
+    var deleteCancelBtn = document.getElementById("delete-cancel-btn");
+
+    // --- Helpers ---
+
+    var GB = 1073741824; // 1 GB in bytes
+
+    function formatBytes(bytes) {
+        if (bytes === 0) return "0 B";
+        var units = ["B", "KB", "MB", "GB", "TB"];
+        var i = 0;
+        var value = bytes;
+        while (value >= 1024 && i < units.length - 1) {
+            value /= 1024;
+            i++;
+        }
+        return (i === 0 ? value : value.toFixed(2)) + " " + units[i];
+    }
+
+    function showFeedback(msg, isError) {
+        feedback.innerHTML = '<div class="' + (isError ? "error-msg" : "success-msg") + '">' + escapeHtml(msg) + "</div>";
+        if (!isError) {
+            setTimeout(function() { feedback.innerHTML = ""; }, 3000);
+        }
+    }
+
+    function escapeHtml(str) {
+        var div = document.createElement("div");
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    function apiCall(method, path, formData) {
+        var sep = path.indexOf("?") === -1 ? "?" : "&";
+        var url = path + sep + "access_token=" + encodeURIComponent(token);
+
+        var opts = { method: method };
+        if (formData) {
+            opts.body = formData;
+        }
+
+        return fetch(url, opts).then(function(resp) {
+            return resp.json().then(function(data) {
+                if (resp.status === 401 || resp.status === 403 || data.status === 403) {
+                    logout();
+                    return Promise.reject(new Error("Session expired"));
+                }
+                return data;
+            });
+        });
+    }
+
+    // --- Auth ---
+
+    function login() {
+        var email = loginEmailInput.value.trim();
+        var password = loginPasswordInput.value;
+
+        if (!email || !password) {
+            loginError.textContent = "Email and password are required.";
+            loginError.classList.remove("hidden");
+            return;
+        }
+
+        loginBtn.disabled = true;
+        loginError.classList.add("hidden");
+
+        var body = new URLSearchParams();
+        body.set("client_id", "cloud-win");
+        body.set("grant_type", "password");
+        body.set("username", email);
+        body.set("password", password);
+
+        fetch("/token", {
+            method: "POST",
+            body: body
+        })
+        .then(function(resp) { return resp.json(); })
+        .then(function(data) {
+            loginBtn.disabled = false;
+            if (data.error) {
+                loginError.textContent = data.error_description || "Login failed.";
+                loginError.classList.remove("hidden");
+                return;
+            }
+            token = data.access_token;
+            userEmail = email;
+            sessionStorage.setItem("tucha_admin_token", token);
+            sessionStorage.setItem("tucha_admin_email", email);
+            showMain();
+        })
+        .catch(function(err) {
+            loginBtn.disabled = false;
+            loginError.textContent = "Network error: " + err.message;
+            loginError.classList.remove("hidden");
+        });
+    }
+
+    function logout() {
+        token = "";
+        userEmail = "";
+        sessionStorage.removeItem("tucha_admin_token");
+        sessionStorage.removeItem("tucha_admin_email");
+        loginView.classList.remove("hidden");
+        mainView.classList.add("hidden");
+        loginPasswordInput.value = "";
+        loginError.classList.add("hidden");
+        feedback.innerHTML = "";
+    }
+
+    function showMain() {
+        loginView.classList.add("hidden");
+        mainView.classList.remove("hidden");
+        loggedInEmail.textContent = userEmail;
+        loadUsers();
+    }
+
+    // --- Users CRUD ---
+
+    function loadUsers() {
+        apiCall("GET", "/api/v2/admin/user/list")
+        .then(function(data) {
+            if (data.status !== 200) {
+                showFeedback("Failed to load users: " + JSON.stringify(data.body), true);
+                return;
+            }
+            users = data.body || [];
+            renderUsers();
+        })
+        .catch(function(err) {
+            showFeedback("Failed to load users: " + err.message, true);
+        });
+    }
+
+    function renderUsers() {
+        var sorted = users.slice().sort(function(a, b) {
+            var va = a[sortCol], vb = b[sortCol];
+            if (typeof va === "string") {
+                va = va.toLowerCase();
+                vb = vb.toLowerCase();
+            }
+            if (va < vb) return sortAsc ? -1 : 1;
+            if (va > vb) return sortAsc ? 1 : -1;
+            return 0;
+        });
+
+        // Update sort arrows
+        var ths = document.querySelectorAll("#user-table th[data-sort]");
+        for (var i = 0; i < ths.length; i++) {
+            var arrow = ths[i].querySelector(".sort-arrow");
+            if (ths[i].getAttribute("data-sort") === sortCol) {
+                arrow.textContent = sortAsc ? "▲" : "▼";
+            } else {
+                arrow.textContent = "";
+            }
+        }
+
+        var html = "";
+        for (var j = 0; j < sorted.length; j++) {
+            var u = sorted[j];
+            html += "<tr>"
+                + "<td>" + u.id + "</td>"
+                + "<td>" + escapeHtml(u.email) + "</td>"
+                + "<td>" + (u.is_admin ? "Yes" : "No") + "</td>"
+                + "<td>" + formatBytes(u.quota_bytes) + "</td>"
+                + "<td>" + formatBytes(u.bytes_used) + "</td>"
+                + '<td class="actions">'
+                + '<button onclick="window._adminEdit(' + u.id + ')">Edit</button>'
+                + '<button onclick="window._adminDelete(' + u.id + ')">Delete</button>'
+                + "</td>"
+                + "</tr>";
+        }
+        userTbody.innerHTML = html;
+    }
+
+    function openAddForm() {
+        formTitle.textContent = "Add User";
+        formUserId.value = "";
+        formEmail.value = "";
+        formPassword.value = "";
+        formQuota.value = "";
+        formAdmin.checked = false;
+        formError.classList.add("hidden");
+        userForm.classList.remove("hidden");
+        formEmail.focus();
+    }
+
+    function openEditForm(userId) {
+        var user = null;
+        for (var i = 0; i < users.length; i++) {
+            if (users[i].id === userId) { user = users[i]; break; }
+        }
+        if (!user) return;
+
+        formTitle.textContent = "Edit User";
+        formUserId.value = user.id;
+        formEmail.value = user.email;
+        formPassword.value = "";
+        formQuota.value = (user.quota_bytes / GB).toFixed(2);
+        formAdmin.checked = user.is_admin;
+        formError.classList.add("hidden");
+        userForm.classList.remove("hidden");
+        formEmail.focus();
+    }
+
+    function closeForm() {
+        userForm.classList.add("hidden");
+    }
+
+    function saveForm() {
+        var isEdit = formUserId.value !== "";
+        var email = formEmail.value.trim();
+        var password = formPassword.value;
+        var quotaGB = parseFloat(formQuota.value);
+        var isAdmin = formAdmin.checked;
+
+        if (!email) {
+            formError.textContent = "Email is required.";
+            formError.classList.remove("hidden");
+            return;
+        }
+        if (!isEdit && !password) {
+            formError.textContent = "Password is required for new users.";
+            formError.classList.remove("hidden");
+            return;
+        }
+
+        formSaveBtn.disabled = true;
+        formError.classList.add("hidden");
+
+        var body = new URLSearchParams();
+        body.set("email", email);
+        if (password) body.set("password", password);
+        body.set("is_admin", isAdmin ? "1" : "0");
+        if (!isNaN(quotaGB) && quotaGB > 0) {
+            body.set("quota_bytes", String(Math.round(quotaGB * GB)));
+        }
+
+        var url, actionLabel;
+        if (isEdit) {
+            body.set("id", formUserId.value);
+            url = "/api/v2/admin/user/edit";
+            actionLabel = "updated";
+        } else {
+            url = "/api/v2/admin/user/add";
+            actionLabel = "created";
+        }
+
+        apiCall("POST", url, body)
+        .then(function(data) {
+            formSaveBtn.disabled = false;
+            if (data.status !== 200) {
+                var msg = typeof data.body === "string" ? data.body : JSON.stringify(data.body);
+                formError.textContent = "Error: " + msg;
+                formError.classList.remove("hidden");
+                return;
+            }
+            closeForm();
+            showFeedback("User " + actionLabel + " successfully.", false);
+            loadUsers();
+        })
+        .catch(function(err) {
+            formSaveBtn.disabled = false;
+            formError.textContent = "Error: " + err.message;
+            formError.classList.remove("hidden");
+        });
+    }
+
+    function openDeleteDialog(userId) {
+        var user = null;
+        for (var i = 0; i < users.length; i++) {
+            if (users[i].id === userId) { user = users[i]; break; }
+        }
+        if (!user) return;
+
+        deleteTargetId = userId;
+        deleteUserEmail.textContent = user.email;
+        deleteDialog.classList.remove("hidden");
+    }
+
+    function confirmDelete() {
+        if (deleteTargetId === null) return;
+
+        deleteConfirmBtn.disabled = true;
+
+        var body = new URLSearchParams();
+        body.set("id", String(deleteTargetId));
+
+        apiCall("POST", "/api/v2/admin/user/remove", body)
+        .then(function(data) {
+            deleteConfirmBtn.disabled = false;
+            deleteDialog.classList.add("hidden");
+            if (data.status !== 200) {
+                var msg = typeof data.body === "string" ? data.body : JSON.stringify(data.body);
+                showFeedback("Delete failed: " + msg, true);
+                return;
+            }
+            showFeedback("User deleted successfully.", false);
+            deleteTargetId = null;
+            loadUsers();
+        })
+        .catch(function(err) {
+            deleteConfirmBtn.disabled = false;
+            deleteDialog.classList.add("hidden");
+            showFeedback("Delete failed: " + err.message, true);
+        });
+    }
+
+    function cancelDelete() {
+        deleteTargetId = null;
+        deleteDialog.classList.add("hidden");
+    }
+
+    // --- Sort ---
+
+    function handleSort(e) {
+        var th = e.target.closest("th[data-sort]");
+        if (!th) return;
+        var col = th.getAttribute("data-sort");
+        if (sortCol === col) {
+            sortAsc = !sortAsc;
+        } else {
+            sortCol = col;
+            sortAsc = true;
+        }
+        renderUsers();
+    }
+
+    // --- Event binding ---
+
+    loginBtn.addEventListener("click", login);
+    loginPasswordInput.addEventListener("keydown", function(e) {
+        if (e.key === "Enter") login();
+    });
+    loginEmailInput.addEventListener("keydown", function(e) {
+        if (e.key === "Enter") loginPasswordInput.focus();
+    });
+    logoutBtn.addEventListener("click", logout);
+    addUserBtn.addEventListener("click", openAddForm);
+    formSaveBtn.addEventListener("click", saveForm);
+    formCancelBtn.addEventListener("click", closeForm);
+    deleteConfirmBtn.addEventListener("click", confirmDelete);
+    deleteCancelBtn.addEventListener("click", cancelDelete);
+    document.querySelector("#user-table thead").addEventListener("click", handleSort);
+
+    // Expose for inline onclick handlers in rendered rows
+    window._adminEdit = openEditForm;
+    window._adminDelete = openDeleteDialog;
+
+    // --- Init ---
+
+    if (token) {
+        showMain();
+    }
+})();
+</script>
+</body>
+</html>

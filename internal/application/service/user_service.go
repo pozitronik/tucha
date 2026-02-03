@@ -53,9 +53,34 @@ func (s *UserService) Create(email, password string, isAdmin bool, quotaBytes in
 	return user, nil
 }
 
+// UserWithUsage pairs a user with their current disk usage.
+type UserWithUsage struct {
+	entity.User
+	BytesUsed int64
+}
+
 // List returns all users.
 func (s *UserService) List() ([]entity.User, error) {
 	return s.users.List()
+}
+
+// ListWithUsage returns all users with their current disk usage.
+func (s *UserService) ListWithUsage() ([]UserWithUsage, error) {
+	users, err := s.users.List()
+	if err != nil {
+		return nil, fmt.Errorf("listing users: %w", err)
+	}
+
+	result := make([]UserWithUsage, 0, len(users))
+	for _, u := range users {
+		used, err := s.nodes.TotalSize(u.ID)
+		if err != nil {
+			return nil, fmt.Errorf("getting usage for user %d: %w", u.ID, err)
+		}
+		result = append(result, UserWithUsage{User: u, BytesUsed: used})
+	}
+
+	return result, nil
 }
 
 // Update modifies an existing user's fields.

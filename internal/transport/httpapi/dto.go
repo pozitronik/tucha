@@ -67,5 +67,6 @@ type UserInfo struct {
 	Email      string `json:"email"`
 	IsAdmin    bool   `json:"is_admin"`
 	QuotaBytes int64  `json:"quota_bytes"`
+	BytesUsed  int64  `json:"bytes_used"`
 	Created    int64  `json:"created"`
 }

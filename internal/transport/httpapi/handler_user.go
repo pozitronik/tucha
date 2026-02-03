@@ -85,15 +85,22 @@ func (h *UserHandler) HandleUserList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	users, err := h.users.List()
+	users, err := h.users.ListWithUsage()
 	if err != nil {
 		writeEnvelope(w, authed.Email, 500, "unknown")
 		return
 	}
 
 	infos := make([]UserInfo, 0, len(users))
-	for i := range users {
-		infos = append(infos, userEntityToInfo(&users[i]))
+	for _, u := range users {
+		infos = append(infos, UserInfo{
+			ID:         u.ID,
+			Email:      u.Email,
+			IsAdmin:    u.IsAdmin,
+			QuotaBytes: u.QuotaBytes,
+			BytesUsed:  u.BytesUsed,
+			Created:    u.Created,
+		})
 	}
 
 	writeSuccess(w, authed.Email, infos)
@@ -221,9 +228,4 @@ func userToInfo(u *entity.User) UserInfo {
 		QuotaBytes: u.QuotaBytes,
 		Created:    u.Created,
 	}
-}
-
-// userEntityToInfo converts a User pointer to a UserInfo DTO (same as userToInfo, for slice iteration).
-func userEntityToInfo(u *entity.User) UserInfo {
-	return userToInfo(u)
 }

@@ -15,6 +15,7 @@ func RegisterRoutes(
 	spaceH *SpaceHandler,
 	selfConfigH *SelfConfigureHandler,
 	userH *UserHandler,
+	adminH *AdminHandler,
 ) {
 	// Service discovery (unauthenticated).
 	mux.HandleFunc("/", selfConfigH.HandleSelfConfigure)
@@ -54,4 +55,7 @@ func RegisterRoutes(
 	mux.HandleFunc("/api/v2/admin/user/list", userH.HandleUserList)
 	mux.HandleFunc("/api/v2/admin/user/edit", userH.HandleUserEdit)
 	mux.HandleFunc("/api/v2/admin/user/remove", userH.HandleUserRemove)
+
+	// Admin panel.
+	mux.HandleFunc("/admin", adminH.HandleAdmin)
 }
