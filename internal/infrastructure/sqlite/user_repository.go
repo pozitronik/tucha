@@ -24,7 +24,7 @@ func (r *UserRepository) Upsert(email, password string, isAdmin bool, quotaBytes
 
 	res, err := r.db.Exec(
 		`INSERT INTO users (email, password, is_admin, quota_bytes, created) VALUES (?, ?, ?, ?, ?)
-		 ON CONFLICT(email) DO UPDATE SET password = excluded.password`,
+		 ON CONFLICT(email) DO UPDATE SET password = excluded.password, is_admin = excluded.is_admin`,
 		email, password, boolToInt(isAdmin), quotaBytes, now,
 	)
 	if err != nil {
