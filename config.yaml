@@ -14,3 +14,12 @@ storage:
 
 logging:
   level: "info"
+
+# Per-endpoint URLs for service discovery (/).
+# All values are optional; unset values are derived from server.external_url.
+# endpoints:
+#   api: "http://localhost:8080/api/v2"
+#   oauth: "http://localhost:8080"
+#   dispatcher: "http://localhost:8080/api/v2/dispatcher"
+#   upload: "http://localhost:8080/upload"
+#   download: "http://localhost:8080/get"

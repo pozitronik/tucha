@@ -4,16 +4,18 @@ package config
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
 
 // Config holds the complete server configuration.
 type Config struct {
-	Server  ServerConfig  `yaml:"server"`
-	User    UserConfig    `yaml:"user"`
-	Storage StorageConfig `yaml:"storage"`
-	Logging LoggingConfig `yaml:"logging"`
+	Server    ServerConfig    `yaml:"server"`
+	User      UserConfig      `yaml:"user"`
+	Storage   StorageConfig   `yaml:"storage"`
+	Logging   LoggingConfig   `yaml:"logging"`
+	Endpoints EndpointsConfig `yaml:"endpoints"`
 }
 
 // ServerConfig holds HTTP server settings.
@@ -41,6 +43,16 @@ type LoggingConfig struct {
 	Level string `yaml:"level"`
 }
 
+// EndpointsConfig holds per-endpoint URLs for service discovery.
+// Each field is optional; unset values are derived from server.external_url.
+type EndpointsConfig struct {
+	API        string `yaml:"api"`
+	OAuth      string `yaml:"oauth"`
+	Dispatcher string `yaml:"dispatcher"`
+	Upload     string `yaml:"upload"`
+	Download   string `yaml:"download"`
+}
+
 // Load reads and parses a YAML configuration file from the given path.
 // Returns an error if the file cannot be read or parsed.
 func Load(path string) (*Config, error) {
@@ -58,12 +70,34 @@ func Load(path string) (*Config, error) {
 		return nil, fmt.Errorf("invalid config: %w", err)
 	}
 
+	cfg.applyEndpointDefaults()
+
 	return cfg, nil
 }
 
 // Addr returns the listen address in "host:port" format.
 func (c *Config) Addr() string {
 	return fmt.Sprintf("%s:%d", c.Server.Host, c.Server.Port)
+}
+
+// applyEndpointDefaults fills in unset endpoint URLs from server.external_url.
+func (c *Config) applyEndpointDefaults() {
+	base := strings.TrimRight(c.Server.ExternalURL, "/")
+	if c.Endpoints.API == "" {
+		c.Endpoints.API = base + "/api/v2"
+	}
+	if c.Endpoints.OAuth == "" {
+		c.Endpoints.OAuth = base
+	}
+	if c.Endpoints.Dispatcher == "" {
+		c.Endpoints.Dispatcher = base + "/api/v2/dispatcher"
+	}
+	if c.Endpoints.Upload == "" {
+		c.Endpoints.Upload = base + "/upload"
+	}
+	if c.Endpoints.Download == "" {
+		c.Endpoints.Download = base + "/get"
+	}
 }
 
 // validate checks that required configuration fields are present and valid.

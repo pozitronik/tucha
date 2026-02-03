@@ -13,7 +13,11 @@ func RegisterRoutes(
 	uploadH *UploadHandler,
 	downloadH *DownloadHandler,
 	spaceH *SpaceHandler,
+	selfConfigH *SelfConfigureHandler,
 ) {
+	// Service discovery (unauthenticated).
+	mux.HandleFunc("/", selfConfigH.HandleSelfConfigure)
+
 	// OAuth token endpoint.
 	mux.HandleFunc("/token", tokenH.HandleToken)
 
