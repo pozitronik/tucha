@@ -13,19 +13,31 @@ const (
 )
 
 // ParseAccessLevel converts a raw string to an AccessLevel.
-// Returns an error for unknown values.
+// Accepts both internal ("read_only"/"read_write") and API short forms ("r"/"rw").
 func ParseAccessLevel(raw string) (AccessLevel, error) {
 	switch raw {
-	case "read_only":
+	case "read_only", "r":
 		return AccessReadOnly, nil
-	case "read_write":
+	case "read_write", "rw":
 		return AccessReadWrite, nil
 	default:
 		return "", fmt.Errorf("unknown access level: %q", raw)
 	}
 }
 
-// String returns the string representation of the access level.
+// String returns the internal string representation of the access level.
 func (a AccessLevel) String() string {
 	return string(a)
+}
+
+// APIString returns the short API representation ("r" or "rw").
+func (a AccessLevel) APIString() string {
+	switch a {
+	case AccessReadOnly:
+		return "r"
+	case AccessReadWrite:
+		return "rw"
+	default:
+		return string(a)
+	}
 }

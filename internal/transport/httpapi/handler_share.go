@@ -175,7 +175,7 @@ func (h *ShareHandler) HandleSharedInfo(w http.ResponseWriter, r *http.Request) 
 		members = append(members, h.presenter.ShareToMember(&shares[i]))
 	}
 
-	writeSuccess(w, authed.Email, members)
+	writeSuccess(w, authed.Email, map[string]interface{}{"invited": members})
 }
 
 // HandleIncoming handles GET /api/v2/folder/shared/incoming - list pending incoming invites.

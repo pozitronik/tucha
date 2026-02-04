@@ -72,7 +72,7 @@ func (p *Presenter) ShareToMember(share *entity.Share) ShareMember {
 	return ShareMember{
 		Email:  share.InvitedEmail,
 		Status: share.Status.String(),
-		Access: share.Access.String(),
+		Access: share.Access.APIString(),
 		Name:   share.InvitedEmail,
 	}
 }
@@ -85,7 +85,7 @@ func (p *Presenter) ShareToIncomingInvite(share *entity.Share, ownerEmail string
 			Email: ownerEmail,
 			Name:  ownerEmail,
 		},
-		Access:      share.Access.String(),
+		Access:      share.Access.APIString(),
 		Name:        share.Home.Name(),
 		Home:        share.Home.String(),
 		InviteToken: share.InviteToken,
