@@ -145,7 +145,11 @@ func (s *ShareService) Unmount(userID int64, mountHome string, cloneCopy bool) e
 	}
 
 	if cloneCopy {
-		if err := s.cloneSharedContent(share.OwnerID, share.Home, userID, vo.NewCloudPath(mountHome)); err != nil {
+		dstPath := vo.NewCloudPath(mountHome)
+		if err := s.nodes.EnsurePath(userID, dstPath); err != nil {
+			return err
+		}
+		if err := cloneTree(s.nodes, s.contents, share.OwnerID, share.Home, userID, dstPath); err != nil {
 			return err
 		}
 	}
@@ -173,40 +177,6 @@ func (s *ShareService) Reject(userID int64, inviteToken string) error {
 	}
 
 	return s.shares.Reject(inviteToken)
-}
-
-// cloneSharedContent copies content from the shared folder into the user's tree.
-func (s *ShareService) cloneSharedContent(srcUserID int64, srcHome vo.CloudPath, dstUserID int64, dstHome vo.CloudPath) error {
-	if err := s.nodes.EnsurePath(dstUserID, dstHome); err != nil {
-		return err
-	}
-
-	children, err := s.nodes.ListChildren(srcUserID, srcHome, 0, 65535)
-	if err != nil {
-		return err
-	}
-
-	for _, child := range children {
-		newPath := dstHome.Join(child.Name)
-		if child.IsFile() {
-			if !child.Hash.IsZero() {
-				if _, err := s.contents.Insert(child.Hash, child.Size); err != nil {
-					return err
-				}
-			}
-			if _, err := s.nodes.CreateFile(dstUserID, newPath, child.Hash, child.Size); err != nil {
-				return err
-			}
-		} else {
-			if _, err := s.nodes.CreateFolder(dstUserID, newPath); err != nil {
-				return err
-			}
-			if err := s.cloneSharedContent(srcUserID, child.Home, dstUserID, newPath); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
 }
 
 // generateInviteToken produces a random 32-character hex string for share tokens.
