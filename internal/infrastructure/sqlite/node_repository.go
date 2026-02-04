@@ -287,6 +287,41 @@ func (r *NodeRepository) Copy(userID int64, srcPath, targetFolder vo.CloudPath) 
 	return newFolder, nil
 }
 
+// GetWithDescendants retrieves a node and all its descendants (for folders).
+// For files, the descendants slice is empty.
+func (r *NodeRepository) GetWithDescendants(userID int64, path vo.CloudPath) (*entity.Node, []entity.Node, error) {
+	node, err := r.Get(userID, path)
+	if err != nil {
+		return nil, nil, err
+	}
+	if node == nil {
+		return nil, nil, nil
+	}
+
+	if node.IsFile() {
+		return node, nil, nil
+	}
+
+	rows, err := r.db.Query(
+		`SELECT `+nodeColumns+` FROM nodes WHERE user_id = ? AND home LIKE ?`,
+		userID, path.String()+"/%",
+	)
+	if err != nil {
+		return nil, nil, fmt.Errorf("listing descendants: %w", err)
+	}
+	defer rows.Close()
+
+	var descendants []entity.Node
+	for rows.Next() {
+		n, err := scanNode(rows)
+		if err != nil {
+			return nil, nil, fmt.Errorf("scanning descendant: %w", err)
+		}
+		descendants = append(descendants, *n)
+	}
+	return node, descendants, rows.Err()
+}
+
 // TotalSize returns the total size of all file nodes belonging to the given user.
 func (r *NodeRepository) TotalSize(userID int64) (int64, error) {
 	var total sql.NullInt64
@@ -298,6 +333,60 @@ func (r *NodeRepository) TotalSize(userID int64) (int64, error) {
 		return 0, fmt.Errorf("calculating total size: %w", err)
 	}
 	return total.Int64, nil
+}
+
+// SetWeblink assigns a weblink identifier to the node at the given path.
+func (r *NodeRepository) SetWeblink(userID int64, path vo.CloudPath, weblink string) error {
+	var weblinkVal *string
+	if weblink != "" {
+		weblinkVal = &weblink
+	}
+	_, err := r.db.Exec(
+		`UPDATE nodes SET weblink = ? WHERE user_id = ? AND home = ?`,
+		weblinkVal, userID, path.String(),
+	)
+	if err != nil {
+		return fmt.Errorf("setting weblink: %w", err)
+	}
+	return nil
+}
+
+// GetByWeblink retrieves a node by its weblink identifier (across all users).
+func (r *NodeRepository) GetByWeblink(weblink string) (*entity.Node, error) {
+	row := r.db.QueryRow(
+		`SELECT `+nodeColumns+` FROM nodes WHERE weblink = ?`,
+		weblink,
+	)
+	n, err := scanNode(row)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("getting node by weblink: %w", err)
+	}
+	return n, nil
+}
+
+// ListByWeblink returns all nodes with a non-empty weblink for the given user.
+func (r *NodeRepository) ListByWeblink(userID int64) ([]entity.Node, error) {
+	rows, err := r.db.Query(
+		`SELECT `+nodeColumns+` FROM nodes WHERE user_id = ? AND weblink IS NOT NULL ORDER BY name ASC`,
+		userID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("listing published nodes: %w", err)
+	}
+	defer rows.Close()
+
+	var nodes []entity.Node
+	for rows.Next() {
+		n, err := scanNode(rows)
+		if err != nil {
+			return nil, fmt.Errorf("scanning published node: %w", err)
+		}
+		nodes = append(nodes, *n)
+	}
+	return nodes, rows.Err()
 }
 
 // Exists checks whether a node exists at the given path for the user.

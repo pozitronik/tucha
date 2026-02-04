@@ -18,6 +18,7 @@ type Node struct {
 	Rev      int64
 	GRev     int64
 	Tree     string
+	Weblink  string
 	Created  int64
 }
 

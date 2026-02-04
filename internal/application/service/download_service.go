@@ -32,6 +32,25 @@ type DownloadResult struct {
 	Node *entity.Node
 }
 
+// ResolveByNode opens content for an already-resolved node.
+// Used by public weblink downloads where the node is looked up separately.
+// Returns ErrNotFound if the node is not a file.
+func (s *DownloadService) ResolveByNode(node *entity.Node) (*DownloadResult, error) {
+	if node == nil || !node.IsFile() {
+		return nil, ErrNotFound
+	}
+
+	f, err := s.storage.Open(node.Hash)
+	if err != nil {
+		return nil, err
+	}
+
+	return &DownloadResult{
+		File: f,
+		Node: node,
+	}, nil
+}
+
 // Resolve looks up a file node by path and opens the associated content.
 // Returns ErrNotFound if the path does not exist or is not a file.
 func (s *DownloadService) Resolve(userID int64, path vo.CloudPath) (*DownloadResult, error) {

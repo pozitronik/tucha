@@ -15,6 +15,7 @@ type FolderItem struct {
 	Kind      string       `json:"kind"`
 	Size      int64        `json:"size"`
 	Hash      string       `json:"hash,omitempty"`
+	Weblink   string       `json:"weblink,omitempty"`
 	MTime     int64        `json:"mtime,omitempty"`
 	Rev       int64        `json:"rev,omitempty"`
 	GRev      int64        `json:"grev,omitempty"`
@@ -59,6 +60,39 @@ type SpaceInfo struct {
 	Overquota  bool  `json:"overquota"`
 	BytesTotal int64 `json:"bytes_total"`
 	BytesUsed  int64 `json:"bytes_used"`
+}
+
+// TrashFolderItem represents a trashed item in the trashbin listing response.
+type TrashFolderItem struct {
+	FolderItem
+	DeletedAt   int64  `json:"deleted_at"`
+	DeletedFrom string `json:"deleted_from"`
+	DeletedBy   int64  `json:"deleted_by"`
+}
+
+// ShareMember represents a member in a folder share info response.
+type ShareMember struct {
+	Email  string `json:"email"`
+	Status string `json:"status"`
+	Access string `json:"access"`
+	Name   string `json:"name"`
+}
+
+// IncomingInvite represents a pending incoming share invitation.
+type IncomingInvite struct {
+	Owner       InviteOwner `json:"owner"`
+	Tree        string      `json:"tree,omitempty"`
+	Access      string      `json:"access"`
+	Name        string      `json:"name"`
+	Home        string      `json:"home,omitempty"`
+	Size        int64       `json:"size"`
+	InviteToken string      `json:"invite_token"`
+}
+
+// InviteOwner represents the owner info within an incoming invite.
+type InviteOwner struct {
+	Email string `json:"email"`
+	Name  string `json:"name"`
 }
 
 // UserInfo represents a user in admin API responses (password omitted).

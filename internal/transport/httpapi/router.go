@@ -16,6 +16,10 @@ func RegisterRoutes(
 	selfConfigH *SelfConfigureHandler,
 	userH *UserHandler,
 	adminH *AdminHandler,
+	trashH *TrashHandler,
+	publishH *PublishHandler,
+	weblinkH *WeblinkDownloadHandler,
+	shareH *ShareHandler,
 ) {
 	// Service discovery (unauthenticated).
 	mux.HandleFunc("/", selfConfigH.HandleSelfConfigure)
@@ -59,4 +63,25 @@ func RegisterRoutes(
 
 	// Admin panel.
 	mux.HandleFunc("/admin", adminH.HandleAdmin)
+
+	// Trashbin.
+	mux.HandleFunc("/api/v2/trashbin", trashH.HandleTrashList)
+	mux.HandleFunc("/api/v2/trashbin/restore", trashH.HandleTrashRestore)
+	mux.HandleFunc("/api/v2/trashbin/empty", trashH.HandleTrashEmpty)
+
+	// Publishing / weblinks.
+	mux.HandleFunc("/api/v2/file/publish", publishH.HandlePublish)
+	mux.HandleFunc("/api/v2/file/unpublish", publishH.HandleUnpublish)
+	mux.HandleFunc("/api/v2/folder/shared/links", publishH.HandleSharedLinks)
+	mux.HandleFunc("/api/v2/clone", publishH.HandleClone)
+	mux.HandleFunc("/weblink/", weblinkH.HandleWeblinkDownload)
+
+	// Folder sharing / invites.
+	mux.HandleFunc("/api/v2/folder/share", shareH.HandleShare)
+	mux.HandleFunc("/api/v2/folder/unshare", shareH.HandleUnshare)
+	mux.HandleFunc("/api/v2/folder/shared/info", shareH.HandleSharedInfo)
+	mux.HandleFunc("/api/v2/folder/shared/incoming", shareH.HandleIncoming)
+	mux.HandleFunc("/api/v2/folder/mount", shareH.HandleMount)
+	mux.HandleFunc("/api/v2/folder/unmount", shareH.HandleUnmount)
+	mux.HandleFunc("/api/v2/folder/invites/reject", shareH.HandleReject)
 }

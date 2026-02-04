@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS nodes (
     rev       INTEGER NOT NULL DEFAULT 1,
     grev      INTEGER NOT NULL DEFAULT 1,
     tree      TEXT NOT NULL DEFAULT '',
+    weblink   TEXT,
     created   INTEGER NOT NULL DEFAULT (strftime('%s','now')),
     UNIQUE(user_id, home)
 );
@@ -42,6 +43,38 @@ CREATE TABLE IF NOT EXISTS contents (
     size      INTEGER NOT NULL,
     ref_count INTEGER NOT NULL DEFAULT 1,
     created   INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+);
+
+CREATE TABLE IF NOT EXISTS trash (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name         TEXT NOT NULL,
+    home         TEXT NOT NULL,
+    node_type    TEXT NOT NULL CHECK (node_type IN ('file','folder')),
+    size         INTEGER NOT NULL DEFAULT 0,
+    hash         TEXT,
+    mtime        INTEGER NOT NULL,
+    rev          INTEGER NOT NULL DEFAULT 1,
+    grev         INTEGER NOT NULL DEFAULT 1,
+    tree         TEXT NOT NULL DEFAULT '',
+    deleted_at   INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+    deleted_from TEXT NOT NULL,
+    deleted_by   INTEGER NOT NULL,
+    created      INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS shares (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    owner_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    home          TEXT NOT NULL,
+    invited_email TEXT NOT NULL,
+    access        TEXT NOT NULL CHECK (access IN ('read_only','read_write')),
+    status        TEXT NOT NULL CHECK (status IN ('pending','accepted','rejected')),
+    invite_token  TEXT NOT NULL UNIQUE,
+    mount_home    TEXT,
+    mount_user_id INTEGER REFERENCES users(id),
+    created       INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+    UNIQUE(owner_id, home, invited_email)
 );
 
 CREATE TABLE IF NOT EXISTS tokens (
@@ -92,6 +125,7 @@ func Open(dbPath string) (*DB, error) {
 	migrations := []string{
 		"ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0",
 		"ALTER TABLE users ADD COLUMN quota_bytes INTEGER NOT NULL DEFAULT 17179869184",
+		"ALTER TABLE nodes ADD COLUMN weblink TEXT",
 	}
 	for _, m := range migrations {
 		// Ignore errors -- column already exists on fresh or previously migrated DBs.

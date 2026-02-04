@@ -53,6 +53,8 @@ func main() {
 	tokenRepo := sqlite.NewTokenRepository(db)
 	nodeRepo := sqlite.NewNodeRepository(db)
 	contentRepo := sqlite.NewContentRepository(db)
+	trashRepo := sqlite.NewTrashRepository(db)
+	shareRepo := sqlite.NewShareRepository(db)
 
 	// --- Application services ---
 
@@ -71,6 +73,9 @@ func main() {
 	fileSvc := service.NewFileService(nodeRepo, contentRepo, diskStore, quotaSvc)
 	uploadSvc := service.NewUploadService(mrCloudHasher, diskStore, contentRepo)
 	downloadSvc := service.NewDownloadService(nodeRepo, diskStore)
+	trashSvc := service.NewTrashService(nodeRepo, trashRepo, contentRepo, diskStore)
+	publishSvc := service.NewPublishService(nodeRepo, contentRepo)
+	shareSvc := service.NewShareService(shareRepo, nodeRepo, contentRepo, userRepo)
 
 	// --- Transport (HTTP handlers) ---
 
@@ -80,16 +85,20 @@ func main() {
 	csrfH := httpapi.NewCSRFHandler(authSvc)
 	dispatchH := httpapi.NewDispatchHandler(authSvc, cfg.Server.ExternalURL)
 	folderH := httpapi.NewFolderHandler(authSvc, folderSvc, presenter)
-	fileH := httpapi.NewFileHandler(authSvc, fileSvc, presenter)
+	fileH := httpapi.NewFileHandler(authSvc, fileSvc, trashSvc, presenter)
 	uploadH := httpapi.NewUploadHandler(authSvc, uploadSvc)
 	downloadH := httpapi.NewDownloadHandler(authSvc, downloadSvc)
 	spaceH := httpapi.NewSpaceHandler(authSvc, quotaSvc)
 	selfConfigH := httpapi.NewSelfConfigureHandler(cfg.Endpoints)
 	userH := httpapi.NewUserHandler(authSvc, userSvc)
 	adminH := httpapi.NewAdminHandler()
+	trashH := httpapi.NewTrashHandler(authSvc, trashSvc, presenter)
+	publishH := httpapi.NewPublishHandler(authSvc, publishSvc, presenter)
+	weblinkH := httpapi.NewWeblinkDownloadHandler(publishSvc, downloadSvc)
+	shareH := httpapi.NewShareHandler(authSvc, shareSvc, presenter)
 
 	mux := http.NewServeMux()
-	httpapi.RegisterRoutes(mux, tokenH, csrfH, dispatchH, folderH, fileH, uploadH, downloadH, spaceH, selfConfigH, userH, adminH)
+	httpapi.RegisterRoutes(mux, tokenH, csrfH, dispatchH, folderH, fileH, uploadH, downloadH, spaceH, selfConfigH, userH, adminH, trashH, publishH, weblinkH, shareH)
 
 	// --- Start server ---
 

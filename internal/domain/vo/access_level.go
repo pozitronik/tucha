@@ -1,0 +1,31 @@
+package vo
+
+import "fmt"
+
+// AccessLevel represents the permission level of a folder share.
+type AccessLevel string
+
+const (
+	// AccessReadOnly grants read-only access to the shared folder.
+	AccessReadOnly AccessLevel = "read_only"
+	// AccessReadWrite grants read and write access to the shared folder.
+	AccessReadWrite AccessLevel = "read_write"
+)
+
+// ParseAccessLevel converts a raw string to an AccessLevel.
+// Returns an error for unknown values.
+func ParseAccessLevel(raw string) (AccessLevel, error) {
+	switch raw {
+	case "read_only":
+		return AccessReadOnly, nil
+	case "read_write":
+		return AccessReadWrite, nil
+	default:
+		return "", fmt.Errorf("unknown access level: %q", raw)
+	}
+}
+
+// String returns the string representation of the access level.
+func (a AccessLevel) String() string {
+	return string(a)
+}

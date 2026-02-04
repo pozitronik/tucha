@@ -14,6 +14,7 @@ func scanNode(s interface{ Scan(...any) error }) (*entity.Node, error) {
 		n        entity.Node
 		parentID sql.NullInt64
 		hash     sql.NullString
+		weblink  sql.NullString
 		home     string
 		nodeType string
 	)
@@ -22,7 +23,7 @@ func scanNode(s interface{ Scan(...any) error }) (*entity.Node, error) {
 		&n.ID, &n.UserID, &parentID,
 		&n.Name, &home, &nodeType,
 		&n.Size, &hash,
-		&n.MTime, &n.Rev, &n.GRev, &n.Tree, &n.Created,
+		&n.MTime, &n.Rev, &n.GRev, &n.Tree, &weblink, &n.Created,
 	)
 	if err != nil {
 		return nil, err
@@ -36,9 +37,12 @@ func scanNode(s interface{ Scan(...any) error }) (*entity.Node, error) {
 	if hash.Valid {
 		n.Hash = vo.MustContentHash(hash.String)
 	}
+	if weblink.Valid {
+		n.Weblink = weblink.String
+	}
 
 	return &n, nil
 }
 
 // nodeColumns is the standard column list for node queries.
-const nodeColumns = `id, user_id, parent_id, name, home, node_type, size, hash, mtime, rev, grev, tree, created`
+const nodeColumns = `id, user_id, parent_id, name, home, node_type, size, hash, mtime, rev, grev, tree, weblink, created`

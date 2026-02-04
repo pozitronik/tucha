@@ -46,8 +46,23 @@ type NodeRepository interface {
 	// any that already exist. Analogous to "mkdir -p".
 	EnsurePath(userID int64, path vo.CloudPath) error
 
+	// GetWithDescendants retrieves a node and all its descendants (for folders).
+	// For files, the descendants slice is empty.
+	// Returns nil, nil, nil if the node is not found.
+	GetWithDescendants(userID int64, path vo.CloudPath) (*entity.Node, []entity.Node, error)
+
 	// TotalSize returns the total size of all file nodes belonging to the given user.
 	TotalSize(userID int64) (int64, error)
+
+	// SetWeblink assigns a weblink identifier to the node at the given path.
+	SetWeblink(userID int64, path vo.CloudPath, weblink string) error
+
+	// GetByWeblink retrieves a node by its weblink identifier (across all users).
+	// Returns nil, nil if not found.
+	GetByWeblink(weblink string) (*entity.Node, error)
+
+	// ListByWeblink returns all nodes with a non-empty weblink for the given user.
+	ListByWeblink(userID int64) ([]entity.Node, error)
 
 	// Exists checks whether a node exists at the given path for the user.
 	Exists(userID int64, path vo.CloudPath) (bool, error)

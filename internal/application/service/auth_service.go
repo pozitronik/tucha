@@ -25,6 +25,23 @@ func NewAuthService(tokens repository.TokenRepository, users repository.UserRepo
 	return &AuthService{tokens: tokens, users: users}
 }
 
+// ResolveUser looks up a user by ID.
+// Returns nil, nil if the user does not exist.
+func (s *AuthService) ResolveUser(userID int64) (*AuthenticatedUser, error) {
+	user, err := s.users.GetByID(userID)
+	if err != nil {
+		return nil, err
+	}
+	if user == nil {
+		return nil, nil
+	}
+	return &AuthenticatedUser{
+		UserID:  user.ID,
+		Email:   user.Email,
+		IsAdmin: user.IsAdmin,
+	}, nil
+}
+
 // Validate checks an access token string and returns the authenticated user context.
 // Returns nil, nil if the token is not found, expired, or the user no longer exists.
 func (s *AuthService) Validate(accessToken string) (*AuthenticatedUser, error) {

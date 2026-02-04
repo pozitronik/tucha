@@ -14,6 +14,7 @@ import (
 type FileHandler struct {
 	auth      *service.AuthService
 	files     *service.FileService
+	trash     *service.TrashService
 	presenter *Presenter
 }
 
@@ -21,11 +22,13 @@ type FileHandler struct {
 func NewFileHandler(
 	auth *service.AuthService,
 	files *service.FileService,
+	trash *service.TrashService,
 	presenter *Presenter,
 ) *FileHandler {
 	return &FileHandler{
 		auth:      auth,
 		files:     files,
+		trash:     trash,
 		presenter: presenter,
 	}
 }
@@ -158,7 +161,7 @@ func (h *FileHandler) HandleFileRemove(w http.ResponseWriter, r *http.Request) {
 	}
 
 	path := vo.NewCloudPath(homePath)
-	h.files.Remove(authed.UserID, path)
+	h.trash.Trash(authed.UserID, path, authed.UserID)
 
 	writeSuccess(w, authed.Email, path.String())
 }
