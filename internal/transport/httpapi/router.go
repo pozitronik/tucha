@@ -45,6 +45,7 @@ func RegisterRoutes(
 
 	// Upload and download.
 	mux.HandleFunc("/upload/", uploadH.HandleUpload)
+	mux.HandleFunc("/upload", uploadH.HandleUpload)
 	mux.HandleFunc("/get/", downloadH.HandleDownload)
 
 	// User space/quota.

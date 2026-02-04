@@ -87,7 +87,7 @@ func (c *Config) applyEndpointDefaults() {
 		c.Endpoints.API = base + "/api/v2"
 	}
 	if c.Endpoints.OAuth == "" {
-		c.Endpoints.OAuth = base
+		c.Endpoints.OAuth = base + "/token"
 	}
 	if c.Endpoints.Dispatcher == "" {
 		c.Endpoints.Dispatcher = base + "/api/v2/dispatcher"
