@@ -74,7 +74,7 @@ func RegisterRoutes(
 	mux.HandleFunc("/api/v2/file/unpublish", publishH.HandleUnpublish)
 	mux.HandleFunc("/api/v2/folder/shared/links", publishH.HandleSharedLinks)
 	mux.HandleFunc("/api/v2/clone", publishH.HandleClone)
-	mux.HandleFunc("/weblink/", weblinkH.HandleWeblinkDownload)
+	mux.HandleFunc("/public/", weblinkH.HandleWeblinkDownload)
 
 	// Folder sharing / invites.
 	mux.HandleFunc("/api/v2/folder/share", shareH.HandleShare)
