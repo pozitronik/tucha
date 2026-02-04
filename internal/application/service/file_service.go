@@ -82,6 +82,9 @@ func (s *FileService) AddByHash(userID int64, path vo.CloudPath, hash vo.Content
 		}
 	}
 
+	if err := s.nodes.EnsurePath(userID, path.Parent()); err != nil {
+		return nil, err
+	}
 	return s.nodes.CreateFile(userID, path, hash, size)
 }
 
@@ -106,10 +109,16 @@ func (s *FileService) Rename(userID int64, path vo.CloudPath, newName string) (*
 
 // Move moves a file or folder to a target directory.
 func (s *FileService) Move(userID int64, srcPath, targetFolder vo.CloudPath) (*entity.Node, error) {
+	if err := s.nodes.EnsurePath(userID, targetFolder); err != nil {
+		return nil, err
+	}
 	return s.nodes.Move(userID, srcPath, targetFolder)
 }
 
 // Copy duplicates a file or folder into a target directory.
 func (s *FileService) Copy(userID int64, srcPath, targetFolder vo.CloudPath) (*entity.Node, error) {
+	if err := s.nodes.EnsurePath(userID, targetFolder); err != nil {
+		return nil, err
+	}
 	return s.nodes.Copy(userID, srcPath, targetFolder)
 }

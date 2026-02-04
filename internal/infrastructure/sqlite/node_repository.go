@@ -310,6 +310,41 @@ func (r *NodeRepository) Exists(userID int64, path vo.CloudPath) (bool, error) {
 	return exists, err
 }
 
+// EnsurePath creates all intermediate folders for the given path, skipping
+// any that already exist. Iterates from shallowest to deepest ancestor.
+func (r *NodeRepository) EnsurePath(userID int64, path vo.CloudPath) error {
+	if path.IsRoot() {
+		return nil
+	}
+
+	// Collect ancestors from target up to root (exclusive).
+	var segments []vo.CloudPath
+	current := path
+	for !current.IsRoot() {
+		segments = append(segments, current)
+		current = current.Parent()
+	}
+
+	// Reverse: shallowest first so parents exist before children.
+	for i, j := 0, len(segments)-1; i < j; i, j = i+1, j-1 {
+		segments[i], segments[j] = segments[j], segments[i]
+	}
+
+	for _, seg := range segments {
+		exists, err := r.Exists(userID, seg)
+		if err != nil {
+			return fmt.Errorf("checking path %s: %w", seg, err)
+		}
+		if !exists {
+			if _, err := r.CreateFolder(userID, seg); err != nil {
+				return fmt.Errorf("creating intermediate folder %s: %w", seg, err)
+			}
+		}
+	}
+
+	return nil
+}
+
 // updateChildPaths updates the home path of all descendants when a parent is renamed or moved.
 func (r *NodeRepository) updateChildPaths(userID int64, oldPrefix, newPrefix vo.CloudPath) error {
 	_, err := r.db.Exec(

@@ -42,6 +42,10 @@ type NodeRepository interface {
 	// Copy duplicates a node (and its children for folders) from srcPath into the target folder.
 	Copy(userID int64, srcPath, targetFolder vo.CloudPath) (*entity.Node, error)
 
+	// EnsurePath creates all intermediate folders for the given path, skipping
+	// any that already exist. Analogous to "mkdir -p".
+	EnsurePath(userID int64, path vo.CloudPath) error
+
 	// TotalSize returns the total size of all file nodes belonging to the given user.
 	TotalSize(userID int64) (int64, error)
 

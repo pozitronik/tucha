@@ -42,5 +42,8 @@ func (s *FolderService) CreateFolder(userID int64, path vo.CloudPath) (*entity.N
 	if exists {
 		return nil, ErrAlreadyExists
 	}
+	if err := s.nodes.EnsurePath(userID, path.Parent()); err != nil {
+		return nil, err
+	}
 	return s.nodes.CreateFolder(userID, path)
 }

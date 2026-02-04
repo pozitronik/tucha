@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"log"
 	"net/http"
 
 	"tucha/internal/application/service"
@@ -57,8 +58,11 @@ func (h *TokenHandler) HandleToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Printf("Auth attempt: email=%q password_len=%d", username, len(password))
+
 	token, err := h.tokens.Authenticate(username, password, tokenTTLSeconds)
 	if err != nil {
+		log.Printf("Auth failed: email=%q err=%v", username, err)
 		writeJSON(w, http.StatusOK, OAuthToken{
 			Error:            "invalid_grant",
 			ErrorCode:        4,
