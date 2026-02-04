@@ -3,9 +3,9 @@ server:
   port: 8081
   external_url: "http://localhost:8081"
 
-user:
-  email: "user@tucha.local"
-  password: " "
+admin:
+  login: "admin"
+  password: "admin"
 
 storage:
   db_path: "./data/tucha.db"

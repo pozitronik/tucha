@@ -11,51 +11,47 @@ import (
 
 // UserHandler handles admin user management CRUD operations.
 type UserHandler struct {
-	auth  *service.AuthService
-	users *service.UserService
+	adminAuth *service.AdminAuthService
+	users     *service.UserService
 }
 
 // NewUserHandler creates a new UserHandler.
-func NewUserHandler(auth *service.AuthService, users *service.UserService) *UserHandler {
-	return &UserHandler{auth: auth, users: users}
+func NewUserHandler(adminAuth *service.AdminAuthService, users *service.UserService) *UserHandler {
+	return &UserHandler{adminAuth: adminAuth, users: users}
 }
 
-// HandleUserAdd handles POST /api/v2/admin/user/add - create a new user.
+// HandleUserAdd handles POST /admin/user/add - create a new user.
 func (h *UserHandler) HandleUserAdd(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	authed, err := h.auth.Validate(r.URL.Query().Get("access_token"))
-	if err != nil || authed == nil {
-		writeEnvelope(w, "", 403, "user")
-		return
-	}
-	if !authed.IsAdmin {
-		writeEnvelope(w, authed.Email, 403, "forbidden")
+	if !h.adminAuth.Validate(extractAdminToken(r)) {
+		writeEnvelope(w, "", 403, "forbidden")
 		return
 	}
 
 	if err := r.ParseForm(); err != nil {
-		writeEnvelope(w, authed.Email, 400, "invalid")
+		writeEnvelope(w, "", 400, "invalid")
 		return
 	}
 
 	email := r.FormValue("email")
 	password := r.FormValue("password")
 	if email == "" || password == "" {
-		writeEnvelope(w, authed.Email, 400, "required")
+		writeEnvelope(w, "", 400, "required")
 		return
 	}
 
 	isAdmin := r.FormValue("is_admin") == "1"
 
 	var quotaBytes int64
+	var err error
 	if qStr := r.FormValue("quota_bytes"); qStr != "" {
 		quotaBytes, err = strconv.ParseInt(qStr, 10, 64)
 		if err != nil {
-			writeEnvelope(w, authed.Email, 400, "invalid")
+			writeEnvelope(w, "", 400, "invalid")
 			return
 		}
 	}
@@ -63,31 +59,26 @@ func (h *UserHandler) HandleUserAdd(w http.ResponseWriter, r *http.Request) {
 	user, err := h.users.Create(email, password, isAdmin, quotaBytes)
 	if err != nil {
 		if errors.Is(err, service.ErrAlreadyExists) {
-			writeEnvelope(w, authed.Email, 400, "exists")
+			writeEnvelope(w, "", 400, "exists")
 			return
 		}
-		writeEnvelope(w, authed.Email, 500, "unknown")
+		writeEnvelope(w, "", 500, "unknown")
 		return
 	}
 
-	writeSuccess(w, authed.Email, userToInfo(user))
+	writeSuccess(w, "", userToInfo(user))
 }
 
-// HandleUserList handles GET /api/v2/admin/user/list - list all users.
+// HandleUserList handles GET /admin/user/list - list all users.
 func (h *UserHandler) HandleUserList(w http.ResponseWriter, r *http.Request) {
-	authed, err := h.auth.Validate(r.URL.Query().Get("access_token"))
-	if err != nil || authed == nil {
-		writeEnvelope(w, "", 403, "user")
-		return
-	}
-	if !authed.IsAdmin {
-		writeEnvelope(w, authed.Email, 403, "forbidden")
+	if !h.adminAuth.Validate(extractAdminToken(r)) {
+		writeEnvelope(w, "", 403, "forbidden")
 		return
 	}
 
 	users, err := h.users.ListWithUsage()
 	if err != nil {
-		writeEnvelope(w, authed.Email, 500, "unknown")
+		writeEnvelope(w, "", 500, "unknown")
 		return
 	}
 
@@ -103,40 +94,35 @@ func (h *UserHandler) HandleUserList(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	writeSuccess(w, authed.Email, infos)
+	writeSuccess(w, "", infos)
 }
 
-// HandleUserEdit handles POST /api/v2/admin/user/edit - update user fields.
+// HandleUserEdit handles POST /admin/user/edit - update user fields.
 func (h *UserHandler) HandleUserEdit(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	authed, err := h.auth.Validate(r.URL.Query().Get("access_token"))
-	if err != nil || authed == nil {
-		writeEnvelope(w, "", 403, "user")
-		return
-	}
-	if !authed.IsAdmin {
-		writeEnvelope(w, authed.Email, 403, "forbidden")
+	if !h.adminAuth.Validate(extractAdminToken(r)) {
+		writeEnvelope(w, "", 403, "forbidden")
 		return
 	}
 
 	if err := r.ParseForm(); err != nil {
-		writeEnvelope(w, authed.Email, 400, "invalid")
+		writeEnvelope(w, "", 400, "invalid")
 		return
 	}
 
 	idStr := r.FormValue("id")
 	if idStr == "" {
-		writeEnvelope(w, authed.Email, 400, "required")
+		writeEnvelope(w, "", 400, "required")
 		return
 	}
 
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		writeEnvelope(w, authed.Email, 400, "invalid")
+		writeEnvelope(w, "", 400, "invalid")
 		return
 	}
 
@@ -152,71 +138,62 @@ func (h *UserHandler) HandleUserEdit(w http.ResponseWriter, r *http.Request) {
 	if qStr := r.FormValue("quota_bytes"); qStr != "" {
 		user.QuotaBytes, err = strconv.ParseInt(qStr, 10, 64)
 		if err != nil {
-			writeEnvelope(w, authed.Email, 400, "invalid")
+			writeEnvelope(w, "", 400, "invalid")
 			return
 		}
 	}
 
 	if err := h.users.Update(user); err != nil {
 		if errors.Is(err, service.ErrNotFound) {
-			writeEnvelope(w, authed.Email, 404, "not_found")
+			writeEnvelope(w, "", 404, "not_found")
 			return
 		}
-		writeEnvelope(w, authed.Email, 500, "unknown")
+		writeEnvelope(w, "", 500, "unknown")
 		return
 	}
 
-	writeSuccess(w, authed.Email, "ok")
+	writeSuccess(w, "", "ok")
 }
 
-// HandleUserRemove handles POST /api/v2/admin/user/remove - delete a user.
+// HandleUserRemove handles POST /admin/user/remove - delete a user.
 func (h *UserHandler) HandleUserRemove(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	authed, err := h.auth.Validate(r.URL.Query().Get("access_token"))
-	if err != nil || authed == nil {
-		writeEnvelope(w, "", 403, "user")
-		return
-	}
-	if !authed.IsAdmin {
-		writeEnvelope(w, authed.Email, 403, "forbidden")
+	if !h.adminAuth.Validate(extractAdminToken(r)) {
+		writeEnvelope(w, "", 403, "forbidden")
 		return
 	}
 
 	if err := r.ParseForm(); err != nil {
-		writeEnvelope(w, authed.Email, 400, "invalid")
+		writeEnvelope(w, "", 400, "invalid")
 		return
 	}
 
 	idStr := r.FormValue("id")
 	if idStr == "" {
-		writeEnvelope(w, authed.Email, 400, "required")
+		writeEnvelope(w, "", 400, "required")
 		return
 	}
 
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		writeEnvelope(w, authed.Email, 400, "invalid")
+		writeEnvelope(w, "", 400, "invalid")
 		return
 	}
 
-	if err := h.users.Delete(authed.UserID, id); err != nil {
-		if errors.Is(err, service.ErrSelfDelete) {
-			writeEnvelope(w, authed.Email, 400, "self_delete")
-			return
-		}
+	if err := h.users.Delete(id); err != nil {
 		if errors.Is(err, service.ErrNotFound) {
-			writeEnvelope(w, authed.Email, 404, "not_found")
+			writeEnvelope(w, "", 404, "not_found")
 			return
 		}
-		writeEnvelope(w, authed.Email, 500, "unknown")
+		writeEnvelope(w, "", 500, "unknown")
 		return
 	}
 
-	writeSuccess(w, authed.Email, "ok")
+	writeSuccess(w, "", "ok")
 }
 
 // userToInfo converts a User pointer to a UserInfo DTO.

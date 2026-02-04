@@ -27,7 +27,7 @@ func main() {
 	log.Printf("Tucha server starting")
 	log.Printf("  Listen: %s", cfg.Addr())
 	log.Printf("  External URL: %s", cfg.Server.ExternalURL)
-	log.Printf("  User: %s", cfg.User.Email)
+	log.Printf("  Admin: %s", cfg.Admin.Login)
 	log.Printf("  Database: %s", cfg.Storage.DBPath)
 	log.Printf("  Content dir: %s", cfg.Storage.ContentDir)
 	log.Printf("  Quota: %d bytes", cfg.Storage.QuotaBytes)
@@ -58,13 +58,7 @@ func main() {
 
 	// --- Application services ---
 
-	seedSvc := service.NewSeedService(userRepo, nodeRepo, cfg.Storage.QuotaBytes)
-	userID, err := seedSvc.Seed(cfg.User.Email, cfg.User.Password, true)
-	if err != nil {
-		log.Fatalf("Failed to seed user: %v", err)
-	}
-	log.Printf("  User ID: %d", userID)
-
+	adminAuthSvc := service.NewAdminAuthService(cfg.Admin.Login, cfg.Admin.Password)
 	authSvc := service.NewAuthService(tokenRepo, userRepo)
 	tokenSvc := service.NewTokenService(tokenRepo, userRepo)
 	quotaSvc := service.NewQuotaService(nodeRepo, userRepo)
@@ -90,8 +84,8 @@ func main() {
 	downloadH := httpapi.NewDownloadHandler(authSvc, downloadSvc)
 	spaceH := httpapi.NewSpaceHandler(authSvc, quotaSvc)
 	selfConfigH := httpapi.NewSelfConfigureHandler(cfg.Endpoints)
-	userH := httpapi.NewUserHandler(authSvc, userSvc)
-	adminH := httpapi.NewAdminHandler()
+	userH := httpapi.NewUserHandler(adminAuthSvc, userSvc)
+	adminH := httpapi.NewAdminHandler(adminAuthSvc)
 	trashH := httpapi.NewTrashHandler(authSvc, trashSvc, presenter)
 	publishH := httpapi.NewPublishHandler(authSvc, publishSvc, presenter)
 	weblinkH := httpapi.NewWeblinkDownloadHandler(publishSvc, downloadSvc, folderSvc, presenter, cfg.Server.ExternalURL)

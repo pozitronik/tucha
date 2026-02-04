@@ -55,14 +55,16 @@ func RegisterRoutes(
 	// User space/quota.
 	mux.HandleFunc("/api/v2/user/space", spaceH.HandleSpace)
 
-	// Admin user management.
-	mux.HandleFunc("/api/v2/admin/user/add", userH.HandleUserAdd)
-	mux.HandleFunc("/api/v2/admin/user/list", userH.HandleUserList)
-	mux.HandleFunc("/api/v2/admin/user/edit", userH.HandleUserEdit)
-	mux.HandleFunc("/api/v2/admin/user/remove", userH.HandleUserRemove)
-
-	// Admin panel.
+	// Admin panel and authentication.
 	mux.HandleFunc("/admin", adminH.HandleAdmin)
+	mux.HandleFunc("/admin/login", adminH.HandleLogin)
+	mux.HandleFunc("/admin/logout", adminH.HandleLogout)
+
+	// Admin user management.
+	mux.HandleFunc("/admin/user/add", userH.HandleUserAdd)
+	mux.HandleFunc("/admin/user/list", userH.HandleUserList)
+	mux.HandleFunc("/admin/user/edit", userH.HandleUserEdit)
+	mux.HandleFunc("/admin/user/remove", userH.HandleUserRemove)
 
 	// Trashbin.
 	mux.HandleFunc("/api/v2/trashbin", trashH.HandleTrashList)

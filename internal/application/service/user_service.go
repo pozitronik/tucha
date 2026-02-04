@@ -110,12 +110,8 @@ func (s *UserService) Update(user *entity.User) error {
 	return s.users.Update(existing)
 }
 
-// Delete removes a user by ID. Self-deletion is blocked.
-func (s *UserService) Delete(callerID, targetID int64) error {
-	if callerID == targetID {
-		return ErrSelfDelete
-	}
-
+// Delete removes a user by ID.
+func (s *UserService) Delete(targetID int64) error {
 	existing, err := s.users.GetByID(targetID)
 	if err != nil {
 		return fmt.Errorf("looking up user: %w", err)

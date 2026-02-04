@@ -20,7 +20,7 @@ type NodeRepository interface {
 	CountChildren(userID int64, path vo.CloudPath) (folders, files int, err error)
 
 	// CreateRootNode creates the root folder node "/" with no parent.
-	// Used only during initial seeding.
+	// Called when a new user is created to initialize their storage tree.
 	CreateRootNode(userID int64) (*entity.Node, error)
 
 	// CreateFolder creates a new folder node at the given path.

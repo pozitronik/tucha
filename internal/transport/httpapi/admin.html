@@ -75,8 +75,8 @@ tr:last-child td { border-bottom: none; }
         <h1>Tucha Admin</h1>
         <div id="login-error" class="error-msg hidden"></div>
         <div class="form-group">
-            <label for="login-email">Email</label>
-            <input type="email" id="login-email" autocomplete="username">
+            <label for="login-login">Login</label>
+            <input type="text" id="login-login" autocomplete="username">
         </div>
         <div class="form-group">
             <label for="login-password">Password</label>
@@ -173,7 +173,7 @@ tr:last-child td { border-bottom: none; }
 
     // --- State ---
     var token = sessionStorage.getItem("tucha_admin_token") || "";
-    var userEmail = sessionStorage.getItem("tucha_admin_email") || "";
+    var adminLogin = sessionStorage.getItem("tucha_admin_login") || "";
     var users = [];
     var sortCol = "id";
     var sortAsc = true;
@@ -182,7 +182,7 @@ tr:last-child td { border-bottom: none; }
     // --- DOM refs ---
     var loginView = document.getElementById("login-view");
     var mainView = document.getElementById("main-view");
-    var loginEmailInput = document.getElementById("login-email");
+    var loginLoginInput = document.getElementById("login-login");
     var loginPasswordInput = document.getElementById("login-password");
     var loginBtn = document.getElementById("login-btn");
     var loginError = document.getElementById("login-error");
@@ -236,15 +236,15 @@ tr:last-child td { border-bottom: none; }
     }
 
     function apiCall(method, path, formData) {
-        var sep = path.indexOf("?") === -1 ? "?" : "&";
-        var url = path + sep + "access_token=" + encodeURIComponent(token);
-
-        var opts = { method: method };
+        var opts = {
+            method: method,
+            headers: { "Authorization": "Bearer " + token }
+        };
         if (formData) {
             opts.body = formData;
         }
 
-        return fetch(url, opts).then(function(resp) {
+        return fetch(path, opts).then(function(resp) {
             return resp.text().then(function(text) {
                 var data;
                 try {
@@ -264,11 +264,11 @@ tr:last-child td { border-bottom: none; }
     // --- Auth ---
 
     function login() {
-        var email = loginEmailInput.value.trim();
+        var loginVal = loginLoginInput.value.trim();
         var password = loginPasswordInput.value;
 
-        if (!email || !password) {
-            loginError.textContent = "Email and password are required.";
+        if (!loginVal || !password) {
+            loginError.textContent = "Login and password are required.";
             loginError.classList.remove("hidden");
             return;
         }
@@ -277,27 +277,25 @@ tr:last-child td { border-bottom: none; }
         loginError.classList.add("hidden");
 
         var body = new URLSearchParams();
-        body.set("client_id", "cloud-win");
-        body.set("grant_type", "password");
-        body.set("username", email);
+        body.set("login", loginVal);
         body.set("password", password);
 
-        fetch("/token", {
+        fetch("/admin/login", {
             method: "POST",
             body: body
         })
         .then(function(resp) { return resp.json(); })
         .then(function(data) {
             loginBtn.disabled = false;
-            if (data.error) {
-                loginError.textContent = data.error_description || "Login failed.";
+            if (data.status !== 200) {
+                loginError.textContent = "Invalid login or password.";
                 loginError.classList.remove("hidden");
                 return;
             }
-            token = data.access_token;
-            userEmail = email;
+            token = data.body.token;
+            adminLogin = loginVal;
             sessionStorage.setItem("tucha_admin_token", token);
-            sessionStorage.setItem("tucha_admin_email", email);
+            sessionStorage.setItem("tucha_admin_login", loginVal);
             showMain();
         })
         .catch(function(err) {
@@ -308,10 +306,14 @@ tr:last-child td { border-bottom: none; }
     }
 
     function logout() {
+        fetch("/admin/logout", {
+            method: "POST",
+            headers: { "Authorization": "Bearer " + token }
+        }).catch(function() {});
         token = "";
-        userEmail = "";
+        adminLogin = "";
         sessionStorage.removeItem("tucha_admin_token");
-        sessionStorage.removeItem("tucha_admin_email");
+        sessionStorage.removeItem("tucha_admin_login");
         loginView.classList.remove("hidden");
         mainView.classList.add("hidden");
         loginPasswordInput.value = "";
@@ -322,14 +324,14 @@ tr:last-child td { border-bottom: none; }
     function showMain() {
         loginView.classList.add("hidden");
         mainView.classList.remove("hidden");
-        loggedInEmail.textContent = userEmail;
+        loggedInEmail.textContent = adminLogin;
         loadUsers();
     }
 
     // --- Users CRUD ---
 
     function loadUsers() {
-        apiCall("GET", "/api/v2/admin/user/list")
+        apiCall("GET", "/admin/user/list")
         .then(function(data) {
             if (data.status !== 200) {
                 showFeedback("Failed to load users: " + JSON.stringify(data.body), true);
@@ -450,10 +452,10 @@ tr:last-child td { border-bottom: none; }
         var url, actionLabel;
         if (isEdit) {
             body.set("id", formUserId.value);
-            url = "/api/v2/admin/user/edit";
+            url = "/admin/user/edit";
             actionLabel = "updated";
         } else {
-            url = "/api/v2/admin/user/add";
+            url = "/admin/user/add";
             actionLabel = "created";
         }
 
@@ -497,7 +499,7 @@ tr:last-child td { border-bottom: none; }
         var body = new URLSearchParams();
         body.set("id", String(deleteTargetId));
 
-        apiCall("POST", "/api/v2/admin/user/remove", body)
+        apiCall("POST", "/admin/user/remove", body)
         .then(function(data) {
             deleteConfirmBtn.disabled = false;
             deleteDialog.classList.add("hidden");
@@ -543,7 +545,7 @@ tr:last-child td { border-bottom: none; }
     loginPasswordInput.addEventListener("keydown", function(e) {
         if (e.key === "Enter") login();
     });
-    loginEmailInput.addEventListener("keydown", function(e) {
+    loginLoginInput.addEventListener("keydown", function(e) {
         if (e.key === "Enter") loginPasswordInput.focus();
     });
     logoutBtn.addEventListener("click", logout);

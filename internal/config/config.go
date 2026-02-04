@@ -12,7 +12,7 @@ import (
 // Config holds the complete server configuration.
 type Config struct {
 	Server    ServerConfig    `yaml:"server"`
-	User      UserConfig      `yaml:"user"`
+	Admin     AdminConfig     `yaml:"admin"`
 	Storage   StorageConfig   `yaml:"storage"`
 	Logging   LoggingConfig   `yaml:"logging"`
 	Endpoints EndpointsConfig `yaml:"endpoints"`
@@ -25,9 +25,9 @@ type ServerConfig struct {
 	ExternalURL string `yaml:"external_url"`
 }
 
-// UserConfig holds the preconfigured user credentials.
-type UserConfig struct {
-	Email    string `yaml:"email"`
+// AdminConfig holds the admin panel credentials (not stored in DB).
+type AdminConfig struct {
+	Login    string `yaml:"login"`
 	Password string `yaml:"password"`
 }
 
@@ -108,11 +108,11 @@ func (c *Config) validate() error {
 	if c.Server.ExternalURL == "" {
 		return fmt.Errorf("server.external_url is required")
 	}
-	if c.User.Email == "" {
-		return fmt.Errorf("user.email is required")
+	if c.Admin.Login == "" {
+		return fmt.Errorf("admin.login is required")
 	}
-	if c.User.Password == "" {
-		return fmt.Errorf("user.password is required")
+	if c.Admin.Password == "" {
+		return fmt.Errorf("admin.password is required")
 	}
 	if c.Storage.DBPath == "" {
 		return fmt.Errorf("storage.db_path is required")

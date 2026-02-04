@@ -18,7 +18,4 @@ var (
 
 	// ErrForbidden indicates the caller lacks permission for the operation.
 	ErrForbidden = errors.New("forbidden")
-
-	// ErrSelfDelete indicates an admin attempted to delete their own account.
-	ErrSelfDelete = errors.New("cannot delete own account")
 )
