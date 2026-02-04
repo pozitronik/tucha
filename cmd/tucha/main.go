@@ -84,7 +84,7 @@ func main() {
 	tokenH := httpapi.NewTokenHandler(tokenSvc)
 	csrfH := httpapi.NewCSRFHandler(authSvc)
 	dispatchH := httpapi.NewDispatchHandler(authSvc, cfg.Server.ExternalURL)
-	folderH := httpapi.NewFolderHandler(authSvc, folderSvc, presenter)
+	folderH := httpapi.NewFolderHandler(authSvc, folderSvc, publishSvc, presenter)
 	fileH := httpapi.NewFileHandler(authSvc, fileSvc, trashSvc, presenter)
 	uploadH := httpapi.NewUploadHandler(authSvc, uploadSvc)
 	downloadH := httpapi.NewDownloadHandler(authSvc, downloadSvc)
