@@ -5,7 +5,7 @@ server:
 
 user:
   email: "user@tucha.local"
-  password: "apppassword"
+  password: " "
 
 storage:
   db_path: "./data/tucha.db"

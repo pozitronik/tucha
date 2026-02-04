@@ -84,6 +84,9 @@ func (s *UserService) ListWithUsage() ([]UserWithUsage, error) {
 }
 
 // Update modifies an existing user's fields.
+// Zero-value fields are treated as "no change": empty Email and Password
+// preserve the existing values, and QuotaBytes <= 0 keeps the current quota.
+// IsAdmin is always applied because the caller must set it explicitly.
 func (s *UserService) Update(user *entity.User) error {
 	existing, err := s.users.GetByID(user.ID)
 	if err != nil {
@@ -93,7 +96,18 @@ func (s *UserService) Update(user *entity.User) error {
 		return ErrNotFound
 	}
 
-	return s.users.Update(user)
+	if user.Email != "" {
+		existing.Email = user.Email
+	}
+	if user.Password != "" {
+		existing.Password = user.Password
+	}
+	existing.IsAdmin = user.IsAdmin
+	if user.QuotaBytes > 0 {
+		existing.QuotaBytes = user.QuotaBytes
+	}
+
+	return s.users.Update(existing)
 }
 
 // Delete removes a user by ID. Self-deletion is blocked.
