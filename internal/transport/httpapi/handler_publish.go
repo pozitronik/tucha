@@ -84,23 +84,25 @@ func (h *PublishHandler) HandleUnpublish(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	homePath := r.FormValue("home")
-	if homePath == "" {
+	weblinkID := r.FormValue("weblink")
+	if weblinkID == "" {
 		writeHomeError(w, authed.Email, 400, "required")
 		return
 	}
 
-	path := vo.NewCloudPath(homePath)
-	if err := h.publish.Unpublish(authed.UserID, path); err != nil {
-		if errors.Is(err, service.ErrNotFound) {
+	if err := h.publish.Unpublish(authed.UserID, weblinkID); err != nil {
+		switch {
+		case errors.Is(err, service.ErrNotFound):
 			writeHomeError(w, authed.Email, 404, "not_exists")
-			return
+		case errors.Is(err, service.ErrForbidden):
+			writeHomeError(w, authed.Email, 403, "forbidden")
+		default:
+			writeHomeError(w, authed.Email, 500, "unknown")
 		}
-		writeHomeError(w, authed.Email, 500, "unknown")
 		return
 	}
 
-	writeSuccess(w, authed.Email, path.String())
+	writeSuccess(w, authed.Email, "ok")
 }
 
 // HandleSharedLinks handles GET /api/v2/folder/shared/links - list published items.

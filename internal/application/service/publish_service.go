@@ -51,17 +51,20 @@ func (s *PublishService) Publish(userID int64, path vo.CloudPath) (string, error
 	return weblink, nil
 }
 
-// Unpublish removes the public weblink from the node at the given path.
-func (s *PublishService) Unpublish(userID int64, path vo.CloudPath) error {
-	node, err := s.nodes.Get(userID, path)
+// Unpublish removes the public weblink from the node identified by its weblink value.
+func (s *PublishService) Unpublish(userID int64, weblinkID string) error {
+	node, err := s.nodes.GetByWeblink(weblinkID)
 	if err != nil {
 		return err
 	}
 	if node == nil {
 		return ErrNotFound
 	}
+	if node.UserID != userID {
+		return ErrForbidden
+	}
 
-	return s.nodes.SetWeblink(userID, path, "")
+	return s.nodes.SetWeblink(userID, node.Home, "")
 }
 
 // ListPublished returns all nodes with active weblinks for the given user.
