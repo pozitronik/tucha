@@ -122,12 +122,12 @@ func (h *PublishHandler) HandleSharedLinks(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	var items []FolderItem
+	items := make([]FolderItem, 0, len(nodes))
 	for i := range nodes {
 		items = append(items, h.presenter.NodeToFolderItem(&nodes[i], nil))
 	}
 
-	writeSuccess(w, authed.Email, items)
+	writeSuccess(w, authed.Email, map[string]interface{}{"list": items})
 }
 
 // HandleClone handles POST /api/v2/clone - clone a published item into the caller's tree.

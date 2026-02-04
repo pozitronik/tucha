@@ -48,12 +48,12 @@ func (h *TrashHandler) HandleTrashList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var dtoItems []TrashFolderItem
+	dtoItems := make([]TrashFolderItem, 0, len(items))
 	for i := range items {
 		dtoItems = append(dtoItems, h.presenter.TrashItemToDTO(&items[i]))
 	}
 
-	writeSuccess(w, authed.Email, dtoItems)
+	writeSuccess(w, authed.Email, map[string]interface{}{"list": dtoItems})
 }
 
 // HandleTrashRestore handles POST /api/v2/trashbin/restore - restore a trashed item.

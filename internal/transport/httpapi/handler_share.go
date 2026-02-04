@@ -170,7 +170,7 @@ func (h *ShareHandler) HandleSharedInfo(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	var members []ShareMember
+	members := make([]ShareMember, 0, len(shares))
 	for i := range shares {
 		members = append(members, h.presenter.ShareToMember(&shares[i]))
 	}
@@ -197,7 +197,7 @@ func (h *ShareHandler) HandleIncoming(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var invites []IncomingInvite
+	invites := make([]IncomingInvite, 0, len(shares))
 	for i := range shares {
 		// Resolve owner email from owner ID.
 		ownerEmail := ""
@@ -208,7 +208,7 @@ func (h *ShareHandler) HandleIncoming(w http.ResponseWriter, r *http.Request) {
 		invites = append(invites, h.presenter.ShareToIncomingInvite(&shares[i], ownerEmail))
 	}
 
-	writeSuccess(w, authed.Email, invites)
+	writeSuccess(w, authed.Email, map[string]interface{}{"list": invites})
 }
 
 // HandleMount handles POST /api/v2/folder/mount - accept and mount a shared folder.
