@@ -94,7 +94,7 @@ func main() {
 	adminH := httpapi.NewAdminHandler()
 	trashH := httpapi.NewTrashHandler(authSvc, trashSvc, presenter)
 	publishH := httpapi.NewPublishHandler(authSvc, publishSvc, presenter)
-	weblinkH := httpapi.NewWeblinkDownloadHandler(publishSvc, downloadSvc, folderSvc, presenter)
+	weblinkH := httpapi.NewWeblinkDownloadHandler(publishSvc, downloadSvc, folderSvc, presenter, cfg.Server.ExternalURL)
 	shareH := httpapi.NewShareHandler(authSvc, shareSvc, presenter)
 
 	mux := http.NewServeMux()

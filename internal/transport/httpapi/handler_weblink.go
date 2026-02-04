@@ -10,12 +10,13 @@ import (
 )
 
 // WeblinkDownloadHandler serves public (unauthenticated) access to published nodes.
-// Files are served as binary downloads; folders return a JSON listing.
+// Files are served as binary downloads; folders return a JSON listing with shard config.
 type WeblinkDownloadHandler struct {
-	publish   *service.PublishService
-	downloads *service.DownloadService
-	folders   *service.FolderService
-	presenter *Presenter
+	publish     *service.PublishService
+	downloads   *service.DownloadService
+	folders     *service.FolderService
+	presenter   *Presenter
+	externalURL string
 }
 
 // NewWeblinkDownloadHandler creates a new WeblinkDownloadHandler.
@@ -24,12 +25,14 @@ func NewWeblinkDownloadHandler(
 	downloads *service.DownloadService,
 	folders *service.FolderService,
 	presenter *Presenter,
+	externalURL string,
 ) *WeblinkDownloadHandler {
 	return &WeblinkDownloadHandler{
-		publish:   publish,
-		downloads: downloads,
-		folders:   folders,
-		presenter: presenter,
+		publish:     publish,
+		downloads:   downloads,
+		folders:     folders,
+		presenter:   presenter,
+		externalURL: strings.TrimRight(externalURL, "/"),
 	}
 }
 
@@ -125,5 +128,8 @@ func (h *WeblinkDownloadHandler) serveFolderListing(w http.ResponseWriter, node 
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"status": 200,
 		"body":   listing,
+		"weblink_get": map[string]string{
+			"url": h.externalURL + "/public/",
+		},
 	})
 }
