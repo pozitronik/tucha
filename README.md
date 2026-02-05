@@ -1,5 +1,7 @@
 # Tucha
 
+[Русский](README.ru.md)
+
 Open-source server implementing a cloud storage API v2 protocol, compatible with the cloud.mail.ru web API.
 
 [API Specification](API_SPEC.md)

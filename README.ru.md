@@ -1,5 +1,7 @@
 # Tucha
 
+[English](README.md)
+
 Открытая имплементация сервера и протокола облачного хранилища, совместимого с web API cloud.mail.ru.
 
 [Описание API](API_SPEC.md)
