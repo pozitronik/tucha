@@ -86,5 +86,5 @@ func (h *PublicThumbnailHandler) HandlePublicThumbnail(w http.ResponseWriter, r 
 	w.Header().Set("Cache-Control", "public, max-age=86400")
 	w.Header().Set("Last-Modified", time.Now().UTC().Format(http.TimeFormat))
 
-	w.Write(result.Data)
+	_, _ = w.Write(result.Data)
 }

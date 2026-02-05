@@ -57,7 +57,7 @@ func createTestImage(t *testing.T, format string, width, height int) *os.File {
 	}
 
 	// Seek back to beginning for reading
-	f.Seek(0, 0)
+	_, _ = f.Seek(0, 0)
 	return f
 }
 

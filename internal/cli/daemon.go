@@ -92,7 +92,7 @@ func RunServerWithGracefulShutdown(addr string, handler http.Handler, pidFile st
 	if err := WritePID(pidFile); err != nil {
 		return fmt.Errorf("writing PID file: %w", err)
 	}
-	defer RemovePID(pidFile)
+	defer func() { _ = RemovePID(pidFile) }()
 
 	srv := &http.Server{
 		Addr:    addr,

@@ -92,7 +92,7 @@ func (h *VideoHandler) HandleHLSPlaylist(w http.ResponseWriter, r *http.Request)
 
 	w.Header().Set("Content-Type", "application/vnd.apple.mpegurl")
 	w.Header().Set("Cache-Control", "public, max-age=3600")
-	w.Write([]byte(playlist))
+	_, _ = w.Write([]byte(playlist))
 }
 
 // HandleVideoStream handles GET /video/* - routes to HLS playlist or direct video access.

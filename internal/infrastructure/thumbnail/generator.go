@@ -56,7 +56,7 @@ func (g *Generator) Generate(srcFile *os.File, hash string, preset Preset) (*Res
 	}
 
 	// Reset file position for potential reuse
-	srcFile.Seek(0, io.SeekStart)
+	_, _ = srcFile.Seek(0, io.SeekStart)
 
 	// Detect format and decode
 	reader := bytes.NewReader(srcData)
@@ -219,5 +219,5 @@ func (g *Generator) saveToCache(hash string, preset Preset, result *Result) {
 	if err := os.WriteFile(tmpPath, result.Data, 0644); err != nil {
 		return
 	}
-	os.Rename(tmpPath, path)
+	_ = os.Rename(tmpPath, path)
 }
