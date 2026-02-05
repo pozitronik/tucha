@@ -20,6 +20,7 @@ func RegisterRoutes(
 	publishH *PublishHandler,
 	weblinkH *WeblinkDownloadHandler,
 	shareH *ShareHandler,
+	thumbnailH *ThumbnailHandler,
 ) {
 	// Service discovery (unauthenticated).
 	mux.HandleFunc("/", selfConfigH.HandleSelfConfigure)
@@ -51,6 +52,9 @@ func RegisterRoutes(
 	mux.HandleFunc("/upload/", uploadH.HandleUpload)
 	mux.HandleFunc("/upload", uploadH.HandleUpload)
 	mux.HandleFunc("/get/", downloadH.HandleDownload)
+
+	// Thumbnails.
+	mux.HandleFunc("/thumb/", thumbnailH.HandleThumbnail)
 
 	// User space/quota.
 	mux.HandleFunc("/api/v2/user/space", spaceH.HandleSpace)

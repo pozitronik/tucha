@@ -16,6 +16,7 @@ import (
 	"tucha/internal/infrastructure/hasher"
 	"tucha/internal/infrastructure/logger"
 	"tucha/internal/infrastructure/sqlite"
+	"tucha/internal/infrastructure/thumbnail"
 	"tucha/internal/transport/httpapi"
 )
 
@@ -182,6 +183,7 @@ func runServer(parsed *cli.CLI) {
 	appLogger.Info("  Admin: %s", cfg.Admin.Login)
 	appLogger.Info("  Database: %s", cfg.Storage.DBPath)
 	appLogger.Info("  Content dir: %s", cfg.Storage.ContentDir)
+	appLogger.Info("  Thumbnail dir: %s", cfg.Storage.ThumbnailDir)
 	appLogger.Info("  Quota: %d bytes", cfg.Storage.QuotaBytes)
 	appLogger.Info("  Token TTL: %d seconds", cfg.Auth.TokenTTLSeconds)
 	appLogger.Debug("  Log level: %s", cfg.Logging.Level)
@@ -199,6 +201,12 @@ func runServer(parsed *cli.CLI) {
 	diskStore, err := contentstore.NewDiskStore(cfg.Storage.ContentDir)
 	if err != nil {
 		appLogger.Error("Failed to create content store: %v", err)
+		os.Exit(1)
+	}
+
+	thumbGen, err := thumbnail.NewGenerator(cfg.Storage.ThumbnailDir)
+	if err != nil {
+		appLogger.Error("Failed to create thumbnail generator: %v", err)
 		os.Exit(1)
 	}
 
@@ -224,6 +232,7 @@ func runServer(parsed *cli.CLI) {
 	fileSvc := service.NewFileService(nodeRepo, contentRepo, diskStore, quotaSvc)
 	uploadSvc := service.NewUploadService(mrCloudHasher, diskStore, contentRepo)
 	downloadSvc := service.NewDownloadService(nodeRepo, diskStore)
+	thumbnailSvc := service.NewThumbnailService(nodeRepo, diskStore, thumbGen)
 	trashSvc := service.NewTrashService(nodeRepo, trashRepo, contentRepo, diskStore)
 	publishSvc := service.NewPublishService(nodeRepo, contentRepo)
 	shareSvc := service.NewShareService(shareRepo, nodeRepo, contentRepo, userRepo)
@@ -247,9 +256,10 @@ func runServer(parsed *cli.CLI) {
 	publishH := httpapi.NewPublishHandler(authSvc, publishSvc, presenter)
 	weblinkH := httpapi.NewWeblinkDownloadHandler(publishSvc, downloadSvc, folderSvc, presenter, cfg.Server.ExternalURL)
 	shareH := httpapi.NewShareHandler(authSvc, shareSvc, presenter)
+	thumbnailH := httpapi.NewThumbnailHandler(authSvc, thumbnailSvc)
 
 	mux := http.NewServeMux()
-	httpapi.RegisterRoutes(mux, tokenH, csrfH, dispatchH, folderH, fileH, uploadH, downloadH, spaceH, selfConfigH, userH, adminH, trashH, publishH, weblinkH, shareH)
+	httpapi.RegisterRoutes(mux, tokenH, csrfH, dispatchH, folderH, fileH, uploadH, downloadH, spaceH, selfConfigH, userH, adminH, trashH, publishH, weblinkH, shareH, thumbnailH)
 
 	// --- Start server with graceful shutdown ---
 

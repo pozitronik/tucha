@@ -35,9 +35,10 @@ type AdminConfig struct {
 
 // StorageConfig holds database and content storage settings.
 type StorageConfig struct {
-	DBPath     string `yaml:"db_path"`
-	ContentDir string `yaml:"content_dir"`
-	QuotaBytes int64  `yaml:"quota_bytes"`
+	DBPath       string `yaml:"db_path"`
+	ContentDir   string `yaml:"content_dir"`
+	ThumbnailDir string `yaml:"thumbnail_dir"` // Optional, defaults to content_dir/thumbs
+	QuotaBytes   int64  `yaml:"quota_bytes"`
 }
 
 // AuthConfig holds authentication settings.
@@ -94,6 +95,11 @@ func (c *Config) applyDefaults() {
 	// Auth defaults
 	if c.Auth.TokenTTLSeconds <= 0 {
 		c.Auth.TokenTTLSeconds = 86400 // 24 hours
+	}
+
+	// Storage defaults
+	if c.Storage.ThumbnailDir == "" {
+		c.Storage.ThumbnailDir = c.Storage.ContentDir + "/thumbs"
 	}
 
 	// Logging defaults
