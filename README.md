@@ -1,6 +1,8 @@
 # Tucha
 
-Go server implementing a cloud storage API v2 protocol, compatible with the cloud-win desktop client.
+Open-source server implementing a cloud storage API v2 protocol, compatible with the cloud.mail.ru web API.
+
+[API_SPEC.md](API Specification)
 
 ## Quick Start
 
@@ -17,12 +19,6 @@ go build -o tucha ./cmd/tucha
 
 The server creates the database and storage directory automatically on first run.
 
-### Default Access
-
-After startup, log in with the credentials from `config.yaml` (`user.email` / `user.password`). The seed user is always an administrator.
-
-Admin panel: `http://localhost:8080/admin`
-
 ## Configuration
 
 All settings are in `config.yaml`. There are no environment variable overrides.
@@ -30,12 +26,12 @@ All settings are in `config.yaml`. There are no environment variable overrides.
 ```yaml
 server:
   host: "0.0.0.0"                        # Bind address
-  port: 8080                              # Listen port
-  external_url: "http://localhost:8080"   # Public URL announced to clients
+  port: 8081                              # Listen port
+  external_url: "http://localhost:8081"   # Public URL announced to clients
 
-user:
-  email: "user@tucha.local"              # Seed admin email
-  password: "apppassword"                # Seed admin password
+admin:
+  login: "admin"                          # Admin panel login
+  password: "admin"                       # Admin panel password
 
 storage:
   db_path: "./data/tucha.db"             # SQLite database file path
@@ -46,21 +42,28 @@ logging:
   level: "info"                          # Log level
 
 # Optional: override individual endpoint URLs (derived from external_url by default)
-endpoints:
-  api: ""
-  oauth: ""
-  dispatcher: ""
-  upload: ""
-  download: ""
+# endpoints:
+#   api: "http://localhost:8081/api/v2"
+#   oauth: "http://localhost:8081"
+#   dispatcher: "http://localhost:8081/api/v2/dispatcher"
+#   upload: "http://localhost:8081/upload"
+#   download: "http://localhost:8081/get"
 ```
 
 ### Configuration Notes
 
-- **`storage.quota_bytes`** is the default quota assigned to newly created users when no explicit quota is provided. Changing this value affects only future users, not existing ones.
-- **`user.email` / `user.password`** define the seed admin account. On every startup, this account is upserted (created or updated). Changing these values in the config and restarting will update the seed account credentials.
-- **`endpoints.*`** are optional. If omitted, they are derived from `external_url`. Set them explicitly when the server is behind a reverse proxy with different internal/external URLs.
+- **`admin.login` / `admin.password`** -- admin panel credentials. These are separate from user accounts and are used only for the web-based admin interface.
+- **`storage.quota_bytes`** -- default quota assigned to newly created users when no explicit quota is provided. Changing this value affects only future users.
+- **`endpoints.*`** -- optional. If omitted, derived from `external_url`. Set them explicitly when the server is behind a reverse proxy with different internal/external URLs.
 - All paths (`db_path`, `content_dir`) are relative to the working directory unless absolute.
 - Validated at startup: `port` must be 1--65535, `quota_bytes` must be positive, all required fields must be non-empty.
+
+### First Access
+
+1. Open the admin panel at `http://localhost:8081/admin`
+2. Log in with the admin credentials from `config.yaml` (`admin.login` / `admin.password`)
+3. Create user accounts through the admin panel
+4. Connect the desktop client to `http://localhost:8081`
 
 ## Architecture
 
@@ -71,9 +74,9 @@ cmd/tucha/                          Entry point, dependency wiring
 internal/
   config/                           YAML configuration loading and validation
   domain/
-    entity/                         Core entities: User, Node, Token, Content
+    entity/                         Core entities: User, Node, Token, Content, Share, TrashItem
     repository/                     Repository interfaces (ports)
-    vo/                             Value objects: CloudPath, ContentHash, NodeType, ConflictMode
+    vo/                             Value objects: CloudPath, ContentHash, NodeType, AccessLevel, etc.
   application/
     port/                           Outbound port interfaces (ContentStorage, Hasher)
     service/                        Application services (use case orchestration)
@@ -91,15 +94,17 @@ internal/
 transport -> application/service -> domain/entity + domain/repository
                                  -> application/port
 infrastructure -> domain/repository (implements interfaces)
-                -> application/port  (implements interfaces)
+              -> application/port  (implements interfaces)
 cmd/tucha -> all (composition root only)
 ```
 
 ## Authentication
 
-OAuth2 password grant flow. The server acts as both authorization server and resource server.
+The server has two independent authentication systems.
 
-### Token Lifecycle
+### User Authentication (OAuth2)
+
+OAuth2 password grant flow for desktop client access. The server acts as both authorization server and resource server.
 
 1. Client sends `POST /token` with form data: `client_id=cloud-win`, `grant_type=password`, `username=<email>`, `password=<password>`
 2. Server returns `access_token`, `refresh_token`, `expires_in` (86400 seconds = 24 hours)
@@ -107,9 +112,9 @@ OAuth2 password grant flow. The server acts as both authorization server and res
 4. Tokens are 64-character random hex strings generated via `crypto/rand`
 5. Expired tokens are rejected with status 403
 
-### Admin Privileges
+### Admin Authentication
 
-Admin status (`is_admin`) is a per-user flag. Admin endpoints (`/api/v2/admin/*`) check this flag and return 403 for non-admin users. The seed user from config is always admin.
+Config-based login/password with in-memory bearer tokens. Admin endpoints at `/admin/*` use this system. Admin credentials are set in `config.yaml` and are not stored in the database.
 
 ## Storage
 
@@ -138,7 +143,7 @@ Two modes depending on file size:
 
 ### Database Schema (SQLite)
 
-Four tables:
+Six tables:
 
 | Table      | Purpose                                                                                                           |
 |------------|-------------------------------------------------------------------------------------------------------------------|
@@ -146,116 +151,10 @@ Four tables:
 | `nodes`    | Virtual filesystem: id, user_id, parent_id, name, home (full path), node_type, size, hash, mtime, rev, grev, tree |
 | `contents` | Content registry: hash, size, ref_count, created                                                                  |
 | `tokens`   | Auth tokens: id, user_id, access_token, refresh_token, csrf_token, expires_at                                     |
+| `trash`    | Trashbin: id, user_id, original path, node type, hash, size, deletion metadata                                    |
+| `shares`   | Folder sharing: id, owner, path, invitee email, access level, invite token, mount info                            |
 
 Schema is created automatically. Migrations run at startup if needed.
-
-## API Endpoints
-
-All authenticated endpoints require `?access_token=<token>`.
-
-### Service Discovery
-
-| Method | Path | Auth | Description                                    |
-|--------|------|------|------------------------------------------------|
-| GET    | `/`  | No   | Returns endpoint URLs for client configuration |
-
-### Authentication
-
-| Method | Path                  | Auth | Description                                                                     |
-|--------|-----------------------|------|---------------------------------------------------------------------------------|
-| POST   | `/token`              | No   | OAuth2 password grant (form: `client_id`, `grant_type`, `username`, `password`) |
-| GET    | `/api/v2/tokens/csrf` | Yes  | Get CSRF token for current session                                              |
-
-### Dispatcher
-
-| Method | Path                  | Auth | Description                           |
-|--------|-----------------------|------|---------------------------------------|
-| POST   | `/api/v2/dispatcher/` | Yes  | Returns shard URLs for all operations |
-| GET    | `/d`                  | Yes  | Download shard URL (plain text)       |
-| GET    | `/u`                  | Yes  | Upload shard URL (plain text)         |
-
-### File Operations
-
-| Method | Path                  | Auth | Parameters                         | Description              |
-|--------|-----------------------|------|------------------------------------|--------------------------|
-| GET    | `/api/v2/folder`      | Yes  | `home`, `offset`, `limit`, `sort`  | List directory contents  |
-| GET    | `/api/v2/file`        | Yes  | `home`                             | Get file/folder metadata |
-| POST   | `/api/v2/folder/add`  | Yes  | `home`, `conflict`                 | Create folder            |
-| POST   | `/api/v2/file/add`    | Yes  | `home`, `hash`, `size`, `conflict` | Register uploaded file   |
-| POST   | `/api/v2/file/remove` | Yes  | `home`                             | Delete file or folder    |
-| POST   | `/api/v2/file/rename` | Yes  | `home`, `name`                     | Rename file or folder    |
-| POST   | `/api/v2/file/move`   | Yes  | `home`, `folder`, `conflict`       | Move file or folder      |
-| POST   | `/api/v2/file/copy`   | Yes  | `home`, `folder`, `conflict`       | Copy file or folder      |
-
-### Upload / Download
-
-| Method | Path          | Auth | Description                              |
-|--------|---------------|------|------------------------------------------|
-| PUT    | `/upload/`    | Yes  | Upload file binary, returns 40-char hash |
-| GET    | `/get/<path>` | Yes  | Download file binary                     |
-
-### Quota
-
-| Method | Path                 | Auth | Description                                      |
-|--------|----------------------|------|--------------------------------------------------|
-| GET    | `/api/v2/user/space` | Yes  | Returns `bytes_total`, `bytes_used`, `overquota` |
-
-### Admin User Management
-
-All admin endpoints require the authenticated user to have `is_admin = true`.
-
-| Method | Path                        | Parameters                                                 | Description                       |
-|--------|-----------------------------|------------------------------------------------------------|-----------------------------------|
-| POST   | `/api/v2/admin/user/add`    | `email`, `password`, `is_admin` (0/1), `quota_bytes`       | Create user                       |
-| GET    | `/api/v2/admin/user/list`   | --                                                         | List all users with disk usage    |
-| POST   | `/api/v2/admin/user/edit`   | `id`, `email`, `password`, `is_admin` (0/1), `quota_bytes` | Update user                       |
-| POST   | `/api/v2/admin/user/remove` | `id`                                                       | Delete user (self-delete blocked) |
-
-### Admin Panel
-
-| Method | Path     | Description                          |
-|--------|----------|--------------------------------------|
-| GET    | `/admin` | Web-based admin panel (embedded SPA) |
-
-## API Response Format
-
-All API v2 responses use a standard envelope:
-
-```json
-{
-  "email": "user@example.com",
-  "body": { ... },
-  "time": 1700490243535,
-  "status": 200
-}
-```
-
-- `status: 200` indicates success; the payload is in `body`
-- Error responses encode the error in `body` (e.g., `body.home.error` or a plain string)
-- `time` is server time in milliseconds
-
-### Common Error Codes
-
-| Status | Body            | Meaning                         |
-|--------|-----------------|---------------------------------|
-| 400    | `"exists"`      | Resource already exists         |
-| 400    | `"required"`    | Missing required field          |
-| 400    | `"invalid"`     | Invalid input                   |
-| 400    | `"self_delete"` | Admin cannot delete own account |
-| 403    | `"user"`        | Invalid or expired token        |
-| 403    | `"forbidden"`   | Insufficient privileges         |
-| 404    | `"not_found"`   | Resource not found              |
-| 507    | `"overquota"`   | Storage quota exceeded          |
-
-## Conflict Modes
-
-Used in file/folder operations via the `conflict` parameter:
-
-| Value     | Behavior                       |
-|-----------|--------------------------------|
-| `strict`  | Error if target already exists |
-| `rename`  | Auto-rename to avoid conflict  |
-| `replace` | Overwrite existing target      |
 
 ## Quota Management
 
@@ -266,16 +165,17 @@ Used in file/folder operations via the `conflict` parameter:
 - Quota can be set per-user via the admin API (`quota_bytes` parameter on add/edit)
 - Current usage is visible in the admin panel and via `GET /api/v2/user/space`
 
-## Startup Sequence
+## Testing
 
-1. Parse `-config` flag (default: `config.yaml`)
-2. Load and validate configuration
-3. Open SQLite database (auto-create schema and run migrations)
-4. Initialize content storage directory
-5. Seed admin user from config (upsert by email)
-6. Create root node (`/`) for seed user if missing
-7. Register HTTP routes
-8. Listen on configured address
+```bash
+go test ./internal/... -v -count=1
+```
+
+Race detector for concurrent tests:
+
+```bash
+go test ./internal/application/service/ -run TestAdminAuth_concurrent -race
+```
 
 ## Dependencies
 
@@ -284,3 +184,6 @@ Used in file/folder operations via the `conflict` parameter:
 | `gopkg.in/yaml.v3`   | YAML configuration parsing              |
 | `modernc.org/sqlite` | Pure-Go SQLite driver (no CGO required) |
 | Standard library     | Everything else                         |
+
+# License
+[LICENSE](GNU GPL v3.0)
