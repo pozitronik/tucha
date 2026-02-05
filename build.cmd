@@ -153,7 +153,7 @@ REM Step 5: Build Linux executable
 echo [5/6] Building Linux executable...
 set GOOS=linux
 set GOARCH=amd64
-go build -ldflags="-s -w" -o tucha ./cmd/tucha
+go build -ldflags="-s -w -X 'main.version=!VERSION!'" -o tucha ./cmd/tucha
 if %errorlevel% neq 0 (
     echo.
     echo [X] Linux build failed!
@@ -166,7 +166,7 @@ REM Step 6: Build Windows executable
 echo [6/6] Building Windows executable...
 set GOOS=windows
 set GOARCH=amd64
-go build -ldflags="-s -w" -o tucha.exe ./cmd/tucha
+go build -ldflags="-s -w -X 'main.version=!VERSION!'" -o tucha.exe ./cmd/tucha
 if %errorlevel% neq 0 (
     echo.
     echo [X] Windows build failed!

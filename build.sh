@@ -113,13 +113,13 @@ echo ""
 
 # Step 5: Build Linux executable
 echo "[5/6] Building Linux executable..."
-GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o tucha ./cmd/tucha
+GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X 'main.version=$VERSION'" -o tucha ./cmd/tucha
 echo "[OK] Linux build complete: tucha"
 echo ""
 
 # Step 6: Build Windows executable
 echo "[6/6] Building Windows executable..."
-GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o tucha.exe ./cmd/tucha
+GOOS=windows GOARCH=amd64 go build -ldflags="-s -w -X 'main.version=$VERSION'" -o tucha.exe ./cmd/tucha
 echo "[OK] Windows build complete: tucha.exe"
 echo ""
 

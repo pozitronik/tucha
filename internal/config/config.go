@@ -24,6 +24,7 @@ type ServerConfig struct {
 	Host        string `yaml:"host"`
 	Port        int    `yaml:"port"`
 	ExternalURL string `yaml:"external_url"`
+	PIDFile     string `yaml:"pid_file"` // Optional, defaults to "tucha.pid" in config directory
 }
 
 // AdminConfig holds the admin panel credentials (not stored in DB).

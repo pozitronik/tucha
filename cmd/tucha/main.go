@@ -3,12 +3,14 @@
 package main
 
 import (
-	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"tucha/internal/application/service"
+	"tucha/internal/cli"
 	"tucha/internal/config"
 	"tucha/internal/infrastructure/contentstore"
 	"tucha/internal/infrastructure/hasher"
@@ -18,12 +20,152 @@ import (
 )
 
 func main() {
-	configPath := flag.String("config", "config.yaml", "path to configuration file")
-	flag.Parse()
+	parsed, err := cli.Parse(os.Args)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(cli.ExitError)
+	}
 
-	cfg, err := config.Load(*configPath)
+	switch parsed.Command {
+	case cli.CmdHelp:
+		fmt.Print(cli.HelpText())
+		return
+
+	case cli.CmdVersion:
+		fmt.Printf("Tucha version %s\n", version)
+		return
+
+	case cli.CmdStatus:
+		runStatus(parsed.ConfigPath)
+
+	case cli.CmdStop:
+		runStop(parsed.ConfigPath)
+
+	case cli.CmdConfigCheck:
+		runConfigCheck(parsed.ConfigPath)
+
+	case cli.CmdUserList, cli.CmdUserAdd, cli.CmdUserRemove, cli.CmdUserPwd, cli.CmdUserQuota, cli.CmdUserInfo:
+		runUserCommand(parsed)
+
+	case cli.CmdRun, cli.CmdBackground:
+		runServer(parsed)
+	}
+}
+
+func runStatus(configPath string) {
+	pidFile := cli.DefaultPIDFile(configPath)
+	running, pid, err := cli.ServerStatus(pidFile)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(cli.ExitError)
+	}
+
+	if running {
+		fmt.Printf("Tucha is running (PID: %d)\n", pid)
+	} else {
+		fmt.Println("Tucha is not running")
+		os.Exit(cli.ExitNotRunning)
+	}
+}
+
+func runStop(configPath string) {
+	pidFile := cli.DefaultPIDFile(configPath)
+	if err := cli.StopServer(pidFile); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(cli.ExitNotRunning)
+	}
+	fmt.Println("Tucha stopped")
+}
+
+func runConfigCheck(configPath string) {
+	_, err := config.Load(configPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Configuration error: %v\n", err)
+		os.Exit(cli.ExitConfigError)
+	}
+	fmt.Println("Configuration is valid")
+}
+
+func runUserCommand(parsed *cli.CLI) {
+	cfg, err := config.Load(parsed.ConfigPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error loading config: %v\n", err)
+		os.Exit(cli.ExitConfigError)
+	}
+
+	db, err := sqlite.Open(cfg.Storage.DBPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error opening database: %v\n", err)
+		os.Exit(cli.ExitError)
+	}
+	defer db.Close()
+
+	userRepo := sqlite.NewUserRepository(db)
+	nodeRepo := sqlite.NewNodeRepository(db)
+	userSvc := service.NewUserService(userRepo, nodeRepo, cfg.Storage.QuotaBytes)
+	cmds := cli.NewUserCommands(userSvc, userRepo)
+
+	var cmdErr error
+	switch parsed.Command {
+	case cli.CmdUserList:
+		pattern := ""
+		if len(parsed.Args) > 0 {
+			pattern = parsed.Args[0]
+		}
+		cmdErr = cmds.List(os.Stdout, pattern)
+
+	case cli.CmdUserAdd:
+		quota := ""
+		if len(parsed.Args) > 2 {
+			quota = parsed.Args[2]
+		}
+		cmdErr = cmds.Add(os.Stdout, parsed.Args[0], parsed.Args[1], quota)
+
+	case cli.CmdUserRemove:
+		cmdErr = cmds.Remove(os.Stdout, parsed.Args[0])
+
+	case cli.CmdUserPwd:
+		cmdErr = cmds.SetPassword(os.Stdout, parsed.Args[0], parsed.Args[1])
+
+	case cli.CmdUserQuota:
+		cmdErr = cmds.SetQuota(os.Stdout, parsed.Args[0], parsed.Args[1])
+
+	case cli.CmdUserInfo:
+		cmdErr = cmds.Info(os.Stdout, parsed.Args[0])
+	}
+
+	if cmdErr != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", cmdErr)
+		os.Exit(cli.ExitError)
+	}
+}
+
+func runServer(parsed *cli.CLI) {
+	cfg, err := config.Load(parsed.ConfigPath)
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
+	}
+
+	// Determine PID file path
+	pidFile := cfg.Server.PIDFile
+	if pidFile == "" {
+		pidFile = cli.DefaultPIDFile(parsed.ConfigPath)
+	}
+
+	// Check if already running (for both foreground and background modes)
+	if err := cli.CheckNotRunning(pidFile); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(cli.ExitAlreadyRunning)
+	}
+
+	// Background mode: relaunch as daemon
+	if parsed.Command == cli.CmdBackground {
+		if err := daemonize(parsed.ConfigPath); err != nil {
+			fmt.Fprintf(os.Stderr, "Error starting background process: %v\n", err)
+			os.Exit(cli.ExitError)
+		}
+		fmt.Println("Tucha started in background")
+		return
 	}
 
 	// --- Logger (created first, used by all components) ---
@@ -109,11 +251,12 @@ func main() {
 	mux := http.NewServeMux()
 	httpapi.RegisterRoutes(mux, tokenH, csrfH, dispatchH, folderH, fileH, uploadH, downloadH, spaceH, selfConfigH, userH, adminH, trashH, publishH, weblinkH, shareH)
 
-	// --- Start server ---
+	// --- Start server with graceful shutdown ---
 
 	appLogger.Info("Tucha server listening on %s", cfg.Addr())
-	if err := http.ListenAndServe(cfg.Addr(), mux); err != nil {
+	if err := cli.RunServerWithGracefulShutdown(cfg.Addr(), mux, pidFile, 30*time.Second); err != nil {
 		appLogger.Error("Server failed: %v", err)
 		os.Exit(1)
 	}
+	appLogger.Info("Tucha server stopped")
 }
