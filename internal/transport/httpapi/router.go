@@ -21,6 +21,8 @@ func RegisterRoutes(
 	weblinkH *WeblinkDownloadHandler,
 	shareH *ShareHandler,
 	thumbnailH *ThumbnailHandler,
+	publicThumbH *PublicThumbnailHandler,
+	videoH *VideoHandler,
 ) {
 	// Service discovery (unauthenticated).
 	mux.HandleFunc("/", selfConfigH.HandleSelfConfigure)
@@ -80,7 +82,11 @@ func RegisterRoutes(
 	mux.HandleFunc("/api/v2/file/unpublish", publishH.HandleUnpublish)
 	mux.HandleFunc("/api/v2/folder/shared/links", publishH.HandleSharedLinks)
 	mux.HandleFunc("/api/v2/clone", publishH.HandleClone)
+	mux.HandleFunc("/public/thumb/", publicThumbH.HandlePublicThumbnail)
 	mux.HandleFunc("/public/", weblinkH.HandleWeblinkDownload)
+
+	// Video streaming.
+	mux.HandleFunc("/video/", videoH.HandleVideoStream)
 
 	// Folder sharing / invites.
 	mux.HandleFunc("/api/v2/folder/share", shareH.HandleShare)

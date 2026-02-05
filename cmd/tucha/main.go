@@ -257,9 +257,11 @@ func runServer(parsed *cli.CLI) {
 	weblinkH := httpapi.NewWeblinkDownloadHandler(publishSvc, downloadSvc, folderSvc, presenter, cfg.Server.ExternalURL)
 	shareH := httpapi.NewShareHandler(authSvc, shareSvc, presenter)
 	thumbnailH := httpapi.NewThumbnailHandler(authSvc, thumbnailSvc)
+	publicThumbH := httpapi.NewPublicThumbnailHandler(publishSvc, thumbnailSvc)
+	videoH := httpapi.NewVideoHandler(publishSvc, downloadSvc, cfg.Server.ExternalURL)
 
 	mux := http.NewServeMux()
-	httpapi.RegisterRoutes(mux, tokenH, csrfH, dispatchH, folderH, fileH, uploadH, downloadH, spaceH, selfConfigH, userH, adminH, trashH, publishH, weblinkH, shareH, thumbnailH)
+	httpapi.RegisterRoutes(mux, tokenH, csrfH, dispatchH, folderH, fileH, uploadH, downloadH, spaceH, selfConfigH, userH, adminH, trashH, publishH, weblinkH, shareH, thumbnailH, publicThumbH, videoH)
 
 	// --- Start server with graceful shutdown ---
 
