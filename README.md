@@ -26,6 +26,43 @@ go build -o tucha ./cmd/tucha
 
 The server creates the database and storage directory automatically on first run.
 
+### Command-Line Interface
+
+```
+Usage: tucha [options] [command]
+
+Options:
+  -config <path>     Path to configuration file (default: config.yaml)
+
+Commands:
+  --help, --?        Show help message
+  --version          Show version and exit
+  --background       Run server in background (daemon mode)
+  --status           Show if server is running
+  --stop             Stop background server
+  --config-check     Validate configuration file
+
+User Management:
+  --user list [mask]               List users (optional email filter)
+  --user add <email> <pwd> [quota] Add user (quota: "16GB", "512MB")
+  --user remove <email>            Remove user
+  --user pwd <email> <pwd>         Set password
+  --user quota <email> <quota>     Set quota
+  --user info <email>              Show user details
+```
+
+**Examples:**
+
+```bash
+tucha                              # Start in foreground
+tucha --background                 # Start in background (daemon mode)
+tucha --status                     # Check if server is running
+tucha --stop                       # Stop background server
+tucha --user add user@x.com pass 8GB  # Add user with 8GB quota
+tucha --user list *@example.com    # List users matching pattern
+tucha --user quota user@x.com 16GB # Update user quota
+```
+
 ## Configuration
 
 All settings are in `config.yaml`. There are no environment variable overrides.
@@ -35,6 +72,7 @@ server:
   host: "0.0.0.0"                        # Bind address
   port: 8081                              # Listen port
   external_url: "http://localhost:8081"   # Public URL announced to clients
+  # pid_file: "./tucha.pid"              # Optional: PID file path for daemon mode
 
 admin:
   login: "admin"                          # Admin panel login
@@ -43,10 +81,13 @@ admin:
 storage:
   db_path: "./data/tucha.db"             # SQLite database file path
   content_dir: "./data/storage"          # Content-addressable file storage directory
+  # thumbnail_dir: "./data/storage/thumbs" # Optional: thumbnail cache (default: content_dir/thumbs)
   quota_bytes: 17179869184               # Default user quota in bytes (16 GiB)
 
 logging:
-  level: "info"                          # Log level
+  level: "info"                          # Log level: debug, info, warn, error
+  output: "stdout"                       # Output: stdout, file, both
+  # file: "./logs/tucha.log"             # Required if output is "file" or "both"
 
 # Optional: override individual endpoint URLs (derived from external_url by default)
 # endpoints:
@@ -61,6 +102,9 @@ logging:
 
 - **`admin.login` / `admin.password`** -- admin panel credentials. These are separate from user accounts and are used only for the web-based admin interface.
 - **`storage.quota_bytes`** -- default quota assigned to newly created users when no explicit quota is provided. Changing this value affects only future users.
+- **`storage.thumbnail_dir`** -- optional. Directory for caching image thumbnails. Defaults to `<content_dir>/thumbs`.
+- **`server.pid_file`** -- optional. Path to the PID file for daemon mode. Defaults to `tucha.pid` in the same directory as the config file.
+- **`logging.output`** -- where to send log output: `stdout` (default), `file`, or `both`. When using `file` or `both`, `logging.file` must be specified.
 - **`endpoints.*`** -- optional. If omitted, derived from `external_url`. Set them explicitly when the server is behind a reverse proxy with different internal/external URLs.
 - All paths (`db_path`, `content_dir`) are relative to the working directory unless absolute.
 - Validated at startup: `port` must be 1--65535, `quota_bytes` must be positive, all required fields must be non-empty.
@@ -79,18 +123,21 @@ Clean architecture with DDD principles. The composition root is `cmd/tucha/main.
 ```
 cmd/tucha/                          Entry point, dependency wiring
 internal/
+  cli/                              Command-line interface parser and user commands
   config/                           YAML configuration loading and validation
   domain/
     entity/                         Core entities: User, Node, Token, Content, Share, TrashItem
     repository/                     Repository interfaces (ports)
     vo/                             Value objects: CloudPath, ContentHash, NodeType, AccessLevel, etc.
   application/
-    port/                           Outbound port interfaces (ContentStorage, Hasher)
+    port/                           Outbound port interfaces (ContentStorage, Hasher, Logger)
     service/                        Application services (use case orchestration)
   infrastructure/
     sqlite/                         SQLite repository implementations
     contentstore/                   Disk-based content-addressable storage
     hasher/                         mrCloud hash algorithm implementation
+    logger/                         Leveled logging implementation
+    thumbnail/                      Image thumbnail generator
   transport/
     httpapi/                        HTTP handlers, DTOs, routing, admin panel
 ```
@@ -122,6 +169,27 @@ OAuth2 password grant flow for desktop client access. The server acts as both au
 ### Admin Authentication
 
 Config-based login/password with in-memory bearer tokens. Admin endpoints at `/admin/*` use this system. Admin credentials are set in `config.yaml` and are not stored in the database.
+
+## Server Management
+
+### Daemon Mode
+
+Run the server in background with `--background`. The server:
+- Writes a PID file (default: `tucha.pid` next to config file)
+- Detaches from terminal
+- Logs to file only (if configured)
+
+Control commands:
+- `tucha --status` -- check if server is running
+- `tucha --stop` -- stop the background server
+
+### Graceful Shutdown
+
+The server handles SIGTERM and SIGINT signals gracefully:
+- Stops accepting new connections
+- Waits up to 30 seconds for in-flight requests to complete
+- Closes database connections properly
+- Removes PID file on exit
 
 ## Storage
 
