@@ -7,6 +7,10 @@ admin:
   login: "admin"
   password: "admin"
 
+# Authentication settings (optional, defaults shown)
+# auth:
+#   token_ttl_seconds: 86400  # 24 hours
+
 storage:
   db_path: "./data/tucha.db"
   content_dir: "./data/storage"
