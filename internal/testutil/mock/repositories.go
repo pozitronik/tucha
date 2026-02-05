@@ -216,6 +216,7 @@ func (m *NodeRepositoryMock) Exists(userID int64, path vo.CloudPath) (bool, erro
 type TokenRepositoryMock struct {
 	CreateFunc       func(userID int64, ttlSeconds int) (*entity.Token, error)
 	LookupAccessFunc func(accessToken string) (*entity.Token, error)
+	DeleteFunc       func(id int64) error
 }
 
 func (m *TokenRepositoryMock) Create(userID int64, ttlSeconds int) (*entity.Token, error) {
@@ -230,6 +231,13 @@ func (m *TokenRepositoryMock) LookupAccess(accessToken string) (*entity.Token, e
 		return m.LookupAccessFunc(accessToken)
 	}
 	return nil, nil
+}
+
+func (m *TokenRepositoryMock) Delete(id int64) error {
+	if m.DeleteFunc != nil {
+		return m.DeleteFunc(id)
+	}
+	return nil
 }
 
 // -- ContentRepositoryMock --

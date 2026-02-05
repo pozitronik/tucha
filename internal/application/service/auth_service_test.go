@@ -76,11 +76,18 @@ func TestAuthService_Validate_unknownToken(t *testing.T) {
 
 func TestAuthService_Validate_expiredToken(t *testing.T) {
 	token := mock.NewTestToken(1, time.Now().Add(-time.Hour))
+	deleteCalled := false
+	deletedID := int64(0)
 
 	svc := NewAuthService(
 		&mock.TokenRepositoryMock{
 			LookupAccessFunc: func(at string) (*entity.Token, error) {
 				return token, nil
+			},
+			DeleteFunc: func(id int64) error {
+				deleteCalled = true
+				deletedID = id
+				return nil
 			},
 		},
 		&mock.UserRepositoryMock{},
@@ -92,6 +99,12 @@ func TestAuthService_Validate_expiredToken(t *testing.T) {
 	}
 	if auth != nil {
 		t.Error("Validate(expired) should return nil")
+	}
+	if !deleteCalled {
+		t.Error("Delete should be called for expired token")
+	}
+	if deletedID != token.ID {
+		t.Errorf("Delete called with ID %d, want %d", deletedID, token.ID)
 	}
 }
 

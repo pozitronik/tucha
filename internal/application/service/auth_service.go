@@ -58,6 +58,8 @@ func (s *AuthService) Validate(accessToken string) (*AuthenticatedUser, error) {
 	}
 
 	if token.IsExpired() {
+		// Clean up expired token from database
+		_ = s.tokens.Delete(token.ID)
 		return nil, nil
 	}
 

@@ -14,6 +14,7 @@ type Config struct {
 	Server    ServerConfig    `yaml:"server"`
 	Admin     AdminConfig     `yaml:"admin"`
 	Storage   StorageConfig   `yaml:"storage"`
+	Auth      AuthConfig      `yaml:"auth"`
 	Logging   LoggingConfig   `yaml:"logging"`
 	Endpoints EndpointsConfig `yaml:"endpoints"`
 }
@@ -36,6 +37,11 @@ type StorageConfig struct {
 	DBPath     string `yaml:"db_path"`
 	ContentDir string `yaml:"content_dir"`
 	QuotaBytes int64  `yaml:"quota_bytes"`
+}
+
+// AuthConfig holds authentication settings.
+type AuthConfig struct {
+	TokenTTLSeconds int `yaml:"token_ttl_seconds"`
 }
 
 // LoggingConfig holds logging settings.
@@ -70,7 +76,7 @@ func Load(path string) (*Config, error) {
 		return nil, fmt.Errorf("invalid config: %w", err)
 	}
 
-	cfg.applyEndpointDefaults()
+	cfg.applyDefaults()
 
 	return cfg, nil
 }
@@ -80,8 +86,14 @@ func (c *Config) Addr() string {
 	return fmt.Sprintf("%s:%d", c.Server.Host, c.Server.Port)
 }
 
-// applyEndpointDefaults fills in unset endpoint URLs from server.external_url.
-func (c *Config) applyEndpointDefaults() {
+// applyDefaults fills in unset configuration values with sensible defaults.
+func (c *Config) applyDefaults() {
+	// Auth defaults
+	if c.Auth.TokenTTLSeconds <= 0 {
+		c.Auth.TokenTTLSeconds = 86400 // 24 hours
+	}
+
+	// Endpoint defaults
 	base := strings.TrimRight(c.Server.ExternalURL, "/")
 	if c.Endpoints.API == "" {
 		c.Endpoints.API = base + "/api/v2"

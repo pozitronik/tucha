@@ -80,6 +80,15 @@ func (r *TokenRepository) LookupAccess(accessToken string) (*entity.Token, error
 	return t, nil
 }
 
+// Delete removes a token by its ID.
+func (r *TokenRepository) Delete(id int64) error {
+	_, err := r.db.Exec(`DELETE FROM tokens WHERE id = ?`, id)
+	if err != nil {
+		return fmt.Errorf("deleting token: %w", err)
+	}
+	return nil
+}
+
 // randomHex generates n random bytes and returns them as a hex string.
 func randomHex(n int) (string, error) {
 	b := make([]byte, n)

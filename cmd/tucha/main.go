@@ -31,6 +31,7 @@ func main() {
 	log.Printf("  Database: %s", cfg.Storage.DBPath)
 	log.Printf("  Content dir: %s", cfg.Storage.ContentDir)
 	log.Printf("  Quota: %d bytes", cfg.Storage.QuotaBytes)
+	log.Printf("  Token TTL: %d seconds", cfg.Auth.TokenTTLSeconds)
 
 	// --- Infrastructure ---
 
@@ -75,7 +76,7 @@ func main() {
 
 	presenter := httpapi.NewPresenter()
 
-	tokenH := httpapi.NewTokenHandler(tokenSvc)
+	tokenH := httpapi.NewTokenHandler(tokenSvc, cfg.Auth.TokenTTLSeconds)
 	csrfH := httpapi.NewCSRFHandler(authSvc)
 	dispatchH := httpapi.NewDispatchHandler(authSvc, cfg.Server.ExternalURL)
 	folderH := httpapi.NewFolderHandler(authSvc, folderSvc, publishSvc, presenter)

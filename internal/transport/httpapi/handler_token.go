@@ -7,16 +7,15 @@ import (
 	"tucha/internal/application/service"
 )
 
-const tokenTTLSeconds = 86400
-
 // TokenHandler handles OAuth2 password grant authentication.
 type TokenHandler struct {
-	tokens *service.TokenService
+	tokens          *service.TokenService
+	tokenTTLSeconds int
 }
 
 // NewTokenHandler creates a new TokenHandler.
-func NewTokenHandler(tokens *service.TokenService) *TokenHandler {
-	return &TokenHandler{tokens: tokens}
+func NewTokenHandler(tokens *service.TokenService, tokenTTLSeconds int) *TokenHandler {
+	return &TokenHandler{tokens: tokens, tokenTTLSeconds: tokenTTLSeconds}
 }
 
 // HandleToken handles POST /token.
@@ -60,7 +59,7 @@ func (h *TokenHandler) HandleToken(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Auth attempt: email=%q password_len=%d", username, len(password))
 
-	token, err := h.tokens.Authenticate(username, password, tokenTTLSeconds)
+	token, err := h.tokens.Authenticate(username, password, h.tokenTTLSeconds)
 	if err != nil {
 		log.Printf("Auth failed: email=%q err=%v", username, err)
 		writeJSON(w, http.StatusOK, OAuthToken{
@@ -72,7 +71,7 @@ func (h *TokenHandler) HandleToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, OAuthToken{
-		ExpiresIn:        tokenTTLSeconds,
+		ExpiresIn:        h.tokenTTLSeconds,
 		RefreshToken:     token.RefreshToken,
 		AccessToken:      token.AccessToken,
 		Error:            "",

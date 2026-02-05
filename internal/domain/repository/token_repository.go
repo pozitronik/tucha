@@ -12,4 +12,7 @@ type TokenRepository interface {
 	// LookupAccess finds a token by its access_token value.
 	// Returns nil, nil if not found. Does NOT check expiration -- that is the caller's responsibility.
 	LookupAccess(accessToken string) (*entity.Token, error)
+
+	// Delete removes a token by its ID.
+	Delete(id int64) error
 }
