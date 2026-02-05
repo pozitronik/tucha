@@ -22,9 +22,8 @@ func NewSpaceHandler(auth *service.AuthService, quota *service.QuotaService) *Sp
 
 // HandleSpace handles GET /api/v2/user/space - storage quota information.
 func (h *SpaceHandler) HandleSpace(w http.ResponseWriter, r *http.Request) {
-	authed, err := h.auth.Validate(r.URL.Query().Get("access_token"))
-	if err != nil || authed == nil {
-		writeEnvelope(w, "", 403, "user")
+	authed := authenticate(w, r, h.auth)
+	if authed == nil {
 		return
 	}
 

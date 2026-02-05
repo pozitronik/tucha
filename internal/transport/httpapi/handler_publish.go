@@ -35,9 +35,8 @@ func (h *PublishHandler) HandlePublish(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	authed, err := h.auth.Validate(r.URL.Query().Get("access_token"))
-	if err != nil || authed == nil {
-		writeEnvelope(w, "", 403, "user")
+	authed := authenticate(w, r, h.auth)
+	if authed == nil {
 		return
 	}
 
@@ -73,9 +72,8 @@ func (h *PublishHandler) HandleUnpublish(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	authed, err := h.auth.Validate(r.URL.Query().Get("access_token"))
-	if err != nil || authed == nil {
-		writeEnvelope(w, "", 403, "user")
+	authed := authenticate(w, r, h.auth)
+	if authed == nil {
 		return
 	}
 
@@ -112,9 +110,8 @@ func (h *PublishHandler) HandleSharedLinks(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	authed, err := h.auth.Validate(r.URL.Query().Get("access_token"))
-	if err != nil || authed == nil {
-		writeEnvelope(w, "", 403, "user")
+	authed := authenticate(w, r, h.auth)
+	if authed == nil {
 		return
 	}
 
@@ -139,9 +136,8 @@ func (h *PublishHandler) HandleClone(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	authed, err := h.auth.Validate(r.URL.Query().Get("access_token"))
-	if err != nil || authed == nil {
-		writeEnvelope(w, "", 403, "user")
+	authed := authenticate(w, r, h.auth)
+	if authed == nil {
 		return
 	}
 

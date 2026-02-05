@@ -38,9 +38,8 @@ func (h *ShareHandler) HandleShare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	authed, err := h.auth.Validate(r.URL.Query().Get("access_token"))
-	if err != nil || authed == nil {
-		writeEnvelope(w, "", 403, "user")
+	authed := authenticate(w, r, h.auth)
+	if authed == nil {
 		return
 	}
 
@@ -100,9 +99,8 @@ func (h *ShareHandler) HandleUnshare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	authed, err := h.auth.Validate(r.URL.Query().Get("access_token"))
-	if err != nil || authed == nil {
-		writeEnvelope(w, "", 403, "user")
+	authed := authenticate(w, r, h.auth)
+	if authed == nil {
 		return
 	}
 
@@ -151,9 +149,8 @@ func (h *ShareHandler) HandleSharedInfo(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	authed, err := h.auth.Validate(r.URL.Query().Get("access_token"))
-	if err != nil || authed == nil {
-		writeEnvelope(w, "", 403, "user")
+	authed := authenticate(w, r, h.auth)
+	if authed == nil {
 		return
 	}
 
@@ -185,9 +182,8 @@ func (h *ShareHandler) HandleIncoming(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	authed, err := h.auth.Validate(r.URL.Query().Get("access_token"))
-	if err != nil || authed == nil {
-		writeEnvelope(w, "", 403, "user")
+	authed := authenticate(w, r, h.auth)
+	if authed == nil {
 		return
 	}
 
@@ -218,9 +214,8 @@ func (h *ShareHandler) HandleMount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	authed, err := h.auth.Validate(r.URL.Query().Get("access_token"))
-	if err != nil || authed == nil {
-		writeEnvelope(w, "", 403, "user")
+	authed := authenticate(w, r, h.auth)
+	if authed == nil {
 		return
 	}
 
@@ -258,9 +253,8 @@ func (h *ShareHandler) HandleUnmount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	authed, err := h.auth.Validate(r.URL.Query().Get("access_token"))
-	if err != nil || authed == nil {
-		writeEnvelope(w, "", 403, "user")
+	authed := authenticate(w, r, h.auth)
+	if authed == nil {
 		return
 	}
 
@@ -296,9 +290,8 @@ func (h *ShareHandler) HandleReject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	authed, err := h.auth.Validate(r.URL.Query().Get("access_token"))
-	if err != nil || authed == nil {
-		writeEnvelope(w, "", 403, "user")
+	authed := authenticate(w, r, h.auth)
+	if authed == nil {
 		return
 	}
 

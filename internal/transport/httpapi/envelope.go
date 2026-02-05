@@ -55,3 +55,8 @@ func writeError(w http.ResponseWriter, email string, status int, errField, errMs
 func writeHomeError(w http.ResponseWriter, email string, status int, errMsg string) {
 	writeError(w, email, status, "home", errMsg)
 }
+
+// writeAuthError writes a 403 authentication error response.
+func writeAuthError(w http.ResponseWriter) {
+	writeEnvelope(w, "", 403, "user")
+}

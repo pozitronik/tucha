@@ -24,9 +24,8 @@ func NewDispatchHandler(auth *service.AuthService, externalURL string) *Dispatch
 
 // HandleDispatcher handles POST /api/v2/dispatcher/.
 func (h *DispatchHandler) HandleDispatcher(w http.ResponseWriter, r *http.Request) {
-	authed, err := h.auth.Validate(r.URL.Query().Get("access_token"))
-	if err != nil || authed == nil {
-		writeEnvelope(w, "", 403, "user")
+	authed := authenticate(w, r, h.auth)
+	if authed == nil {
 		return
 	}
 

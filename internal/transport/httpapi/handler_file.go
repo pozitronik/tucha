@@ -35,9 +35,8 @@ func NewFileHandler(
 
 // HandleFile handles GET /api/v2/file - file/folder metadata.
 func (h *FileHandler) HandleFile(w http.ResponseWriter, r *http.Request) {
-	authed, err := h.auth.Validate(r.URL.Query().Get("access_token"))
-	if err != nil || authed == nil {
-		writeEnvelope(w, "", 403, "user")
+	authed := authenticate(w, r, h.auth)
+	if authed == nil {
 		return
 	}
 
@@ -75,9 +74,8 @@ func (h *FileHandler) HandleFileAdd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	authed, err := h.auth.Validate(r.URL.Query().Get("access_token"))
-	if err != nil || authed == nil {
-		writeEnvelope(w, "", 403, "user")
+	authed := authenticate(w, r, h.auth)
+	if authed == nil {
 		return
 	}
 
@@ -143,9 +141,8 @@ func (h *FileHandler) HandleFileRemove(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	authed, err := h.auth.Validate(r.URL.Query().Get("access_token"))
-	if err != nil || authed == nil {
-		writeEnvelope(w, "", 403, "user")
+	authed := authenticate(w, r, h.auth)
+	if authed == nil {
 		return
 	}
 
@@ -174,9 +171,8 @@ func (h *FileHandler) HandleFileRename(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	authed, err := h.auth.Validate(r.URL.Query().Get("access_token"))
-	if err != nil || authed == nil {
-		writeEnvelope(w, "", 403, "user")
+	authed := authenticate(w, r, h.auth)
+	if authed == nil {
 		return
 	}
 
@@ -215,9 +211,8 @@ func (h *FileHandler) HandleFileMove(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	authed, err := h.auth.Validate(r.URL.Query().Get("access_token"))
-	if err != nil || authed == nil {
-		writeEnvelope(w, "", 403, "user")
+	authed := authenticate(w, r, h.auth)
+	if authed == nil {
 		return
 	}
 
@@ -260,9 +255,8 @@ func (h *FileHandler) HandleFileCopy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	authed, err := h.auth.Validate(r.URL.Query().Get("access_token"))
-	if err != nil || authed == nil {
-		writeEnvelope(w, "", 403, "user")
+	authed := authenticate(w, r, h.auth)
+	if authed == nil {
 		return
 	}
 
