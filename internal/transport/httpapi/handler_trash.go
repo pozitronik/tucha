@@ -56,6 +56,7 @@ func (h *TrashHandler) HandleTrashList(w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleTrashRestore handles POST /api/v2/trashbin/restore - restore a trashed item.
+// Body: path=<url_encoded_original_path>&restore_revision=<rev>&conflict=<mode>
 func (h *TrashHandler) HandleTrashRestore(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -72,9 +73,9 @@ func (h *TrashHandler) HandleTrashRestore(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	homePath := r.FormValue("home")
-	revStr := r.FormValue("rev")
-	if homePath == "" || revStr == "" {
+	pathStr := r.FormValue("path")
+	revStr := r.FormValue("restore_revision")
+	if pathStr == "" || revStr == "" {
 		writeHomeError(w, authed.Email, 400, "required")
 		return
 	}
@@ -85,13 +86,13 @@ func (h *TrashHandler) HandleTrashRestore(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	// Parse conflict mode, default to "rename" per API spec
 	conflict, err := vo.ParseConflictMode(r.FormValue("conflict"))
 	if err != nil {
-		writeHomeError(w, authed.Email, 400, "invalid")
-		return
+		conflict = vo.ConflictRename
 	}
 
-	path := vo.NewCloudPath(homePath)
+	path := vo.NewCloudPath(pathStr)
 	if err := h.trash.Restore(authed.UserID, path, rev, conflict); err != nil {
 		switch {
 		case errors.Is(err, service.ErrNotFound):

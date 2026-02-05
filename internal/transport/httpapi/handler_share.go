@@ -208,6 +208,7 @@ func (h *ShareHandler) HandleIncoming(w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleMount handles POST /api/v2/folder/mount - accept and mount a shared folder.
+// Body: home=<url_encoded_name>&invite_token=<token>&conflict=<mode>
 func (h *ShareHandler) HandleMount(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -224,19 +225,27 @@ func (h *ShareHandler) HandleMount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	name := r.FormValue("name")
+	home := r.FormValue("home")
 	inviteToken := r.FormValue("invite_token")
-	if name == "" || inviteToken == "" {
+	if home == "" || inviteToken == "" {
 		writeHomeError(w, authed.Email, 400, "required")
 		return
 	}
 
-	if err := h.shares.Mount(authed.UserID, name, inviteToken); err != nil {
+	// Parse conflict mode, default to "rename" per API spec
+	conflict, err := vo.ParseConflictMode(r.FormValue("conflict"))
+	if err != nil {
+		conflict = vo.ConflictRename
+	}
+
+	if err := h.shares.Mount(authed.UserID, home, inviteToken, conflict); err != nil {
 		switch {
 		case errors.Is(err, service.ErrNotFound):
 			writeHomeError(w, authed.Email, 404, "not_exists")
 		case errors.Is(err, service.ErrForbidden):
 			writeHomeError(w, authed.Email, 403, "forbidden")
+		case errors.Is(err, service.ErrAlreadyExists):
+			writeHomeError(w, authed.Email, 400, "exists")
 		default:
 			writeHomeError(w, authed.Email, 500, "unknown")
 		}

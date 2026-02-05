@@ -111,7 +111,7 @@ func (s *ShareService) ListIncoming(email string) ([]entity.Share, error) {
 }
 
 // Mount accepts a share invitation and records the mount point.
-func (s *ShareService) Mount(userID int64, mountName string, inviteToken string) error {
+func (s *ShareService) Mount(userID int64, mountName string, inviteToken string, conflict vo.ConflictMode) error {
 	share, err := s.shares.GetByInviteToken(inviteToken)
 	if err != nil {
 		return err
@@ -129,7 +129,33 @@ func (s *ShareService) Mount(userID int64, mountName string, inviteToken string)
 		return ErrForbidden
 	}
 
+	// Check if mount point already exists and handle conflict
 	mountHome := "/" + mountName
+	mountPath := vo.NewCloudPath(mountHome)
+	existing, err := s.nodes.Get(userID, mountPath)
+	if err != nil {
+		return err
+	}
+
+	if existing != nil {
+		switch conflict {
+		case vo.ConflictStrict:
+			return ErrAlreadyExists
+		case vo.ConflictRename:
+			// Find unique name by appending suffix
+			base := mountName
+			for i := 1; existing != nil; i++ {
+				mountName = fmt.Sprintf("%s (%d)", base, i)
+				mountHome = "/" + mountName
+				mountPath = vo.NewCloudPath(mountHome)
+				existing, err = s.nodes.Get(userID, mountPath)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+
 	return s.shares.Accept(inviteToken, userID, mountHome)
 }
 

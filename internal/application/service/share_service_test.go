@@ -205,14 +205,18 @@ func TestShareService_Mount_success(t *testing.T) {
 				return nil
 			},
 		},
-		&mock.NodeRepositoryMock{},
+		&mock.NodeRepositoryMock{
+			GetFunc: func(userID int64, path vo.CloudPath) (*entity.Node, error) {
+				return nil, nil // No existing node at mount point
+			},
+		},
 		&mock.ContentRepositoryMock{},
 		&mock.UserRepositoryMock{
 			GetByIDFunc: func(id int64) (*entity.User, error) { return user, nil },
 		},
 	)
 
-	err := svc.Mount(2, "shared-mount", share.InviteToken)
+	err := svc.Mount(2, "shared-mount", share.InviteToken, vo.ConflictRename)
 	if err != nil {
 		t.Fatalf("Mount: %v", err)
 	}
@@ -231,7 +235,7 @@ func TestShareService_Mount_notFound(t *testing.T) {
 		&mock.UserRepositoryMock{},
 	)
 
-	err := svc.Mount(1, "mount", "unknown-token")
+	err := svc.Mount(1, "mount", "unknown-token", vo.ConflictRename)
 	if !errors.Is(err, ErrNotFound) {
 		t.Errorf("Mount(not found) error = %v, want ErrNotFound", err)
 	}
@@ -254,9 +258,79 @@ func TestShareService_Mount_wrongUser(t *testing.T) {
 		},
 	)
 
-	err := svc.Mount(3, "mount", share.InviteToken)
+	err := svc.Mount(3, "mount", share.InviteToken, vo.ConflictRename)
 	if !errors.Is(err, ErrForbidden) {
 		t.Errorf("Mount(wrong user) error = %v, want ErrForbidden", err)
+	}
+}
+
+func TestShareService_Mount_conflictStrict(t *testing.T) {
+	share := mock.NewTestShare(1, "/shared", "user@example.com")
+	user := mock.NewTestUser(2, "user@example.com")
+	existingNode := mock.NewTestNode(2, "/mount", vo.NodeTypeFolder)
+
+	svc := NewShareService(
+		&mock.ShareRepositoryMock{
+			GetByInviteTokenFunc: func(token string) (*entity.Share, error) {
+				return share, nil
+			},
+		},
+		&mock.NodeRepositoryMock{
+			GetFunc: func(userID int64, path vo.CloudPath) (*entity.Node, error) {
+				return existingNode, nil // Mount point already exists
+			},
+		},
+		&mock.ContentRepositoryMock{},
+		&mock.UserRepositoryMock{
+			GetByIDFunc: func(id int64) (*entity.User, error) { return user, nil },
+		},
+	)
+
+	err := svc.Mount(2, "mount", share.InviteToken, vo.ConflictStrict)
+	if !errors.Is(err, ErrAlreadyExists) {
+		t.Errorf("Mount(conflict strict) error = %v, want ErrAlreadyExists", err)
+	}
+}
+
+func TestShareService_Mount_conflictRename(t *testing.T) {
+	share := mock.NewTestShare(1, "/shared", "user@example.com")
+	user := mock.NewTestUser(2, "user@example.com")
+	existingNode := mock.NewTestNode(2, "/mount", vo.NodeTypeFolder)
+	acceptedHome := ""
+
+	callCount := 0
+	svc := NewShareService(
+		&mock.ShareRepositoryMock{
+			GetByInviteTokenFunc: func(token string) (*entity.Share, error) {
+				return share, nil
+			},
+			AcceptFunc: func(inviteToken string, mountUserID int64, mountHome string) error {
+				acceptedHome = mountHome
+				return nil
+			},
+		},
+		&mock.NodeRepositoryMock{
+			GetFunc: func(userID int64, path vo.CloudPath) (*entity.Node, error) {
+				callCount++
+				// First call returns existing node, second returns nil (renamed path is free)
+				if callCount == 1 {
+					return existingNode, nil
+				}
+				return nil, nil
+			},
+		},
+		&mock.ContentRepositoryMock{},
+		&mock.UserRepositoryMock{
+			GetByIDFunc: func(id int64) (*entity.User, error) { return user, nil },
+		},
+	)
+
+	err := svc.Mount(2, "mount", share.InviteToken, vo.ConflictRename)
+	if err != nil {
+		t.Fatalf("Mount(conflict rename): %v", err)
+	}
+	if acceptedHome != "/mount (1)" {
+		t.Errorf("Mount(conflict rename) home = %q, want %q", acceptedHome, "/mount (1)")
 	}
 }
 
