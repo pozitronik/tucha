@@ -3,8 +3,8 @@ package mock
 import (
 	"time"
 
-	"tucha/internal/domain/entity"
-	"tucha/internal/domain/vo"
+	"github.com/pozitronik/tucha/internal/domain/entity"
+	"github.com/pozitronik/tucha/internal/domain/vo"
 )
 
 // ValidHash returns a deterministic valid ContentHash for testing.

@@ -5,9 +5,9 @@ import (
 	"os"
 	"testing"
 
-	"tucha/internal/domain/entity"
-	"tucha/internal/domain/vo"
-	"tucha/internal/testutil/mock"
+	"github.com/pozitronik/tucha/internal/domain/entity"
+	"github.com/pozitronik/tucha/internal/domain/vo"
+	"github.com/pozitronik/tucha/internal/testutil/mock"
 )
 
 func TestDownloadService_Resolve_success(t *testing.T) {

@@ -3,9 +3,9 @@ package service
 import (
 	"bytes"
 
-	"tucha/internal/application/port"
-	"tucha/internal/domain/repository"
-	"tucha/internal/domain/vo"
+	"github.com/pozitronik/tucha/internal/application/port"
+	"github.com/pozitronik/tucha/internal/domain/repository"
+	"github.com/pozitronik/tucha/internal/domain/vo"
 )
 
 // UploadService handles binary uploads: hash computation, disk storage, and DB registration.

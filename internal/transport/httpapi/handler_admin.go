@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"tucha/internal/application/service"
+	"github.com/pozitronik/tucha/internal/application/service"
 )
 
 //go:embed admin.html

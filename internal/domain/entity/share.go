@@ -1,7 +1,7 @@
 package entity
 
 import (
-	"tucha/internal/domain/vo"
+	"github.com/pozitronik/tucha/internal/domain/vo"
 )
 
 // Share represents a folder sharing invitation between users.

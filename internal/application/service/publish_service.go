@@ -1,9 +1,9 @@
 package service
 
 import (
-	"tucha/internal/domain/entity"
-	"tucha/internal/domain/repository"
-	"tucha/internal/domain/vo"
+	"github.com/pozitronik/tucha/internal/domain/entity"
+	"github.com/pozitronik/tucha/internal/domain/repository"
+	"github.com/pozitronik/tucha/internal/domain/vo"
 )
 
 // PublishService handles publishing/unpublishing nodes via weblinks,

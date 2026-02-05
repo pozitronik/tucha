@@ -3,8 +3,8 @@ package service
 import (
 	"fmt"
 
-	"tucha/internal/domain/entity"
-	"tucha/internal/domain/repository"
+	"github.com/pozitronik/tucha/internal/domain/entity"
+	"github.com/pozitronik/tucha/internal/domain/repository"
 )
 
 // UserService handles user CRUD operations.

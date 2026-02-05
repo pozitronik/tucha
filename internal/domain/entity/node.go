@@ -1,7 +1,7 @@
 package entity
 
 import (
-	"tucha/internal/domain/vo"
+	"github.com/pozitronik/tucha/internal/domain/vo"
 )
 
 // Node represents a file or folder in the virtual filesystem.

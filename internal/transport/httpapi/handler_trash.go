@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"tucha/internal/application/service"
-	"tucha/internal/domain/vo"
+	"github.com/pozitronik/tucha/internal/application/service"
+	"github.com/pozitronik/tucha/internal/domain/vo"
 )
 
 // TrashHandler handles trashbin operations: listing, restoring, and emptying.

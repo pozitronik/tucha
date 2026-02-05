@@ -1,8 +1,8 @@
 package entity
 
 import (
+	"github.com/pozitronik/tucha/internal/domain/vo"
 	"testing"
-	"tucha/internal/domain/vo"
 )
 
 func TestTrashItem_IsFile(t *testing.T) {

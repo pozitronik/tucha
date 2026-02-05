@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"tucha/internal/domain/entity"
+	"github.com/pozitronik/tucha/internal/domain/entity"
 )
 
 // UserRepository implements repository.UserRepository using SQLite.

@@ -1,8 +1,8 @@
 package repository
 
 import (
-	"tucha/internal/domain/entity"
-	"tucha/internal/domain/vo"
+	"github.com/pozitronik/tucha/internal/domain/entity"
+	"github.com/pozitronik/tucha/internal/domain/vo"
 )
 
 // ShareRepository persists and retrieves folder sharing invitations.

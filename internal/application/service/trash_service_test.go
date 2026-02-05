@@ -4,9 +4,9 @@ import (
 	"errors"
 	"testing"
 
-	"tucha/internal/domain/entity"
-	"tucha/internal/domain/vo"
-	"tucha/internal/testutil/mock"
+	"github.com/pozitronik/tucha/internal/domain/entity"
+	"github.com/pozitronik/tucha/internal/domain/vo"
+	"github.com/pozitronik/tucha/internal/testutil/mock"
 )
 
 func TestTrashService_Trash_file(t *testing.T) {

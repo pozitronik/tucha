@@ -5,7 +5,7 @@ package port
 import (
 	"io"
 
-	"tucha/internal/domain/vo"
+	"github.com/pozitronik/tucha/internal/domain/vo"
 )
 
 // Hasher computes content hashes for file deduplication.

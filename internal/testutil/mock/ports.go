@@ -4,7 +4,7 @@ import (
 	"io"
 	"os"
 
-	"tucha/internal/domain/vo"
+	"github.com/pozitronik/tucha/internal/domain/vo"
 )
 
 // ContentStorageMock is a test double for port.ContentStorage.

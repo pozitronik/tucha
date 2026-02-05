@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"tucha/internal/domain/vo"
+	"github.com/pozitronik/tucha/internal/domain/vo"
 )
 
 func TestMrCloud_Compute_small(t *testing.T) {

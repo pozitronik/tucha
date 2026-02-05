@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"tucha/internal/application/service"
-	"tucha/internal/domain/entity"
+	"github.com/pozitronik/tucha/internal/application/service"
+	"github.com/pozitronik/tucha/internal/domain/entity"
 )
 
 // WeblinkDownloadHandler serves public (unauthenticated) access to published nodes.

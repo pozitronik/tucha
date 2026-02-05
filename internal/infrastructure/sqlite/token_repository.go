@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"tucha/internal/domain/entity"
+	"github.com/pozitronik/tucha/internal/domain/entity"
 )
 
 // TokenRepository implements repository.TokenRepository using SQLite.

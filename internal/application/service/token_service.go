@@ -1,8 +1,8 @@
 package service
 
 import (
-	"tucha/internal/domain/entity"
-	"tucha/internal/domain/repository"
+	"github.com/pozitronik/tucha/internal/domain/entity"
+	"github.com/pozitronik/tucha/internal/domain/repository"
 )
 
 // TokenService handles token creation and credential-based authentication.

@@ -1,7 +1,7 @@
 package entity
 
 import (
-	"tucha/internal/domain/vo"
+	"github.com/pozitronik/tucha/internal/domain/vo"
 )
 
 // TrashItem represents a node that has been soft-deleted into the trashbin.

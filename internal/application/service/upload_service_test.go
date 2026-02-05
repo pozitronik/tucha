@@ -5,8 +5,8 @@ import (
 	"io"
 	"testing"
 
-	"tucha/internal/domain/vo"
-	"tucha/internal/testutil/mock"
+	"github.com/pozitronik/tucha/internal/domain/vo"
+	"github.com/pozitronik/tucha/internal/testutil/mock"
 )
 
 func TestUploadService_success(t *testing.T) {

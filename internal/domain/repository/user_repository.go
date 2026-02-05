@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"tucha/internal/domain/entity"
+	"github.com/pozitronik/tucha/internal/domain/entity"
 )
 
 // UserRepository persists and retrieves user accounts.

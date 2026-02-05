@@ -3,8 +3,8 @@ package httpapi
 import (
 	"net/http"
 
-	"tucha/internal/application/port"
-	"tucha/internal/application/service"
+	"github.com/pozitronik/tucha/internal/application/port"
+	"github.com/pozitronik/tucha/internal/application/service"
 )
 
 // TokenHandler handles OAuth2 password grant authentication.

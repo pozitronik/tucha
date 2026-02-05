@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"tucha/internal/application/service"
-	"tucha/internal/domain/entity"
+	"github.com/pozitronik/tucha/internal/application/service"
+	"github.com/pozitronik/tucha/internal/domain/entity"
 )
 
 // UserHandler handles admin user management CRUD operations.

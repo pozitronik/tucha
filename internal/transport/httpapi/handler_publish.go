@@ -4,8 +4,8 @@ import (
 	"errors"
 	"net/http"
 
-	"tucha/internal/application/service"
-	"tucha/internal/domain/vo"
+	"github.com/pozitronik/tucha/internal/application/service"
+	"github.com/pozitronik/tucha/internal/domain/vo"
 )
 
 // PublishHandler handles publishing/unpublishing nodes, listing shared links, and cloning.

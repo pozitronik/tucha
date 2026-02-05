@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	"tucha/internal/application/service"
-	"tucha/internal/domain/vo"
+	"github.com/pozitronik/tucha/internal/application/service"
+	"github.com/pozitronik/tucha/internal/domain/vo"
 )
 
 // FileHandler handles file metadata, CRUD operations, and file registration by hash.

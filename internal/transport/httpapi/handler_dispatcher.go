@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"tucha/internal/application/service"
+	"github.com/pozitronik/tucha/internal/application/service"
 )
 
 // DispatchHandler handles shard endpoint discovery.

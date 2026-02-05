@@ -5,9 +5,9 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"tucha/internal/domain/entity"
-	"tucha/internal/domain/repository"
-	"tucha/internal/domain/vo"
+	"github.com/pozitronik/tucha/internal/domain/entity"
+	"github.com/pozitronik/tucha/internal/domain/repository"
+	"github.com/pozitronik/tucha/internal/domain/vo"
 )
 
 // ShareService handles folder sharing invitations: creating, listing, mounting,

@@ -4,8 +4,8 @@ import (
 	"errors"
 	"testing"
 
-	"tucha/internal/domain/entity"
-	"tucha/internal/testutil/mock"
+	"github.com/pozitronik/tucha/internal/domain/entity"
+	"github.com/pozitronik/tucha/internal/testutil/mock"
 )
 
 func TestUserService_Create_success(t *testing.T) {

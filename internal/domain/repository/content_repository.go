@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"tucha/internal/domain/vo"
+	"github.com/pozitronik/tucha/internal/domain/vo"
 )
 
 // ContentRepository manages content reference counting in the database.

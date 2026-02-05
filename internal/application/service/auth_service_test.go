@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"tucha/internal/domain/entity"
-	"tucha/internal/testutil/mock"
+	"github.com/pozitronik/tucha/internal/domain/entity"
+	"github.com/pozitronik/tucha/internal/testutil/mock"
 )
 
 func TestAuthService_Validate_success(t *testing.T) {

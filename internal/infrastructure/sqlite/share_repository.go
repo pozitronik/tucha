@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 
-	"tucha/internal/domain/entity"
-	"tucha/internal/domain/vo"
+	"github.com/pozitronik/tucha/internal/domain/entity"
+	"github.com/pozitronik/tucha/internal/domain/vo"
 )
 
 // ShareRepository implements repository.ShareRepository using SQLite.

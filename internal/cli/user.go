@@ -6,8 +6,8 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"tucha/internal/application/service"
-	"tucha/internal/domain/repository"
+	"github.com/pozitronik/tucha/internal/application/service"
+	"github.com/pozitronik/tucha/internal/domain/repository"
 )
 
 // UserCommands handles CLI user management operations.

@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"tucha/internal/domain/vo"
+	"github.com/pozitronik/tucha/internal/domain/vo"
 )
 
 // DiskStore manages content-addressable file storage using two-level directory sharding.

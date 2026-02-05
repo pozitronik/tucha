@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"tucha/internal/domain/vo"
+	"github.com/pozitronik/tucha/internal/domain/vo"
 )
 
 // ContentRepository implements repository.ContentRepository using SQLite.

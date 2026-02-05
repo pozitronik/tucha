@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"tucha/internal/domain/vo"
+	"github.com/pozitronik/tucha/internal/domain/vo"
 )
 
 func validHash() vo.ContentHash {

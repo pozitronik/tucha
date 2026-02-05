@@ -3,8 +3,8 @@ package sqlite
 import (
 	"database/sql"
 
-	"tucha/internal/domain/entity"
-	"tucha/internal/domain/vo"
+	"github.com/pozitronik/tucha/internal/domain/entity"
+	"github.com/pozitronik/tucha/internal/domain/vo"
 )
 
 // scanNode scans a node row into an entity.Node.

@@ -1,10 +1,10 @@
 package service
 
 import (
-	"tucha/internal/application/port"
-	"tucha/internal/domain/repository"
-	"tucha/internal/domain/vo"
-	"tucha/internal/infrastructure/thumbnail"
+	"github.com/pozitronik/tucha/internal/application/port"
+	"github.com/pozitronik/tucha/internal/domain/repository"
+	"github.com/pozitronik/tucha/internal/domain/vo"
+	"github.com/pozitronik/tucha/internal/infrastructure/thumbnail"
 )
 
 // ThumbnailService handles thumbnail generation for images.

@@ -3,7 +3,7 @@ package httpapi
 import (
 	"net/http"
 
-	"tucha/internal/application/service"
+	"github.com/pozitronik/tucha/internal/application/service"
 )
 
 // SpaceHandler handles storage quota information.

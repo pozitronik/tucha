@@ -9,15 +9,15 @@ import (
 	"os"
 	"time"
 
-	"tucha/internal/application/service"
-	"tucha/internal/cli"
-	"tucha/internal/config"
-	"tucha/internal/infrastructure/contentstore"
-	"tucha/internal/infrastructure/hasher"
-	"tucha/internal/infrastructure/logger"
-	"tucha/internal/infrastructure/sqlite"
-	"tucha/internal/infrastructure/thumbnail"
-	"tucha/internal/transport/httpapi"
+	"github.com/pozitronik/tucha/internal/application/service"
+	"github.com/pozitronik/tucha/internal/cli"
+	"github.com/pozitronik/tucha/internal/config"
+	"github.com/pozitronik/tucha/internal/infrastructure/contentstore"
+	"github.com/pozitronik/tucha/internal/infrastructure/hasher"
+	"github.com/pozitronik/tucha/internal/infrastructure/logger"
+	"github.com/pozitronik/tucha/internal/infrastructure/sqlite"
+	"github.com/pozitronik/tucha/internal/infrastructure/thumbnail"
+	"github.com/pozitronik/tucha/internal/transport/httpapi"
 )
 
 func main() {

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"tucha/internal/domain/entity"
-	"tucha/internal/domain/vo"
+	"github.com/pozitronik/tucha/internal/domain/entity"
+	"github.com/pozitronik/tucha/internal/domain/vo"
 )
 
 // TrashRepository implements repository.TrashRepository using SQLite.

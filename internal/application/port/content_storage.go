@@ -4,7 +4,7 @@ import (
 	"io"
 	"os"
 
-	"tucha/internal/domain/vo"
+	"github.com/pozitronik/tucha/internal/domain/vo"
 )
 
 // ContentStorage provides content-addressable file storage on disk.

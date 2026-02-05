@@ -1,7 +1,7 @@
 package entity
 
 import (
-	"tucha/internal/domain/vo"
+	"github.com/pozitronik/tucha/internal/domain/vo"
 )
 
 // Content represents a content-addressable storage entry.

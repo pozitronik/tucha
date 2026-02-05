@@ -5,7 +5,7 @@ import (
 	"io"
 	"net/http"
 
-	"tucha/internal/application/service"
+	"github.com/pozitronik/tucha/internal/application/service"
 )
 
 // UploadHandler handles binary uploads.

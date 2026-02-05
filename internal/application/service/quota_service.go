@@ -1,7 +1,7 @@
 package service
 
 import (
-	"tucha/internal/domain/repository"
+	"github.com/pozitronik/tucha/internal/domain/repository"
 )
 
 // QuotaService checks storage quota usage on a per-user basis.

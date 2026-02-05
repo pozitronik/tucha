@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"tucha/internal/domain/entity"
-	"tucha/internal/domain/vo"
+	"github.com/pozitronik/tucha/internal/domain/entity"
+	"github.com/pozitronik/tucha/internal/domain/vo"
 )
 
 // NodeRepository implements repository.NodeRepository using SQLite.

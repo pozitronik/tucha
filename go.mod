@@ -1,4 +1,4 @@
-module tucha
+module github.com/pozitronik/tucha
 
 go 1.24.0
 

@@ -3,7 +3,7 @@
 package service
 
 import (
-	"tucha/internal/domain/repository"
+	"github.com/pozitronik/tucha/internal/domain/repository"
 )
 
 // AuthenticatedUser holds the resolved user context from a validated token.

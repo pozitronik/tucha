@@ -1,8 +1,8 @@
 package service
 
 import (
-	"tucha/internal/domain/repository"
-	"tucha/internal/domain/vo"
+	"github.com/pozitronik/tucha/internal/domain/repository"
+	"github.com/pozitronik/tucha/internal/domain/vo"
 )
 
 // cloneTree recursively copies a folder tree from one user to another,

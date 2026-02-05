@@ -3,7 +3,7 @@ package httpapi
 import (
 	"net/http"
 
-	"tucha/internal/config"
+	"github.com/pozitronik/tucha/internal/config"
 )
 
 // SelfConfigureHandler returns the configured endpoint URLs for service discovery.

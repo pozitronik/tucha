@@ -3,10 +3,10 @@ package service
 import (
 	"os"
 
-	"tucha/internal/application/port"
-	"tucha/internal/domain/entity"
-	"tucha/internal/domain/repository"
-	"tucha/internal/domain/vo"
+	"github.com/pozitronik/tucha/internal/application/port"
+	"github.com/pozitronik/tucha/internal/domain/entity"
+	"github.com/pozitronik/tucha/internal/domain/repository"
+	"github.com/pozitronik/tucha/internal/domain/vo"
 )
 
 // DownloadService resolves a cloud path to a content file on disk.
