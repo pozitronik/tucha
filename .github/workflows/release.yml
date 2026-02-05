@@ -1,0 +1,214 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.goos }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux, windows]
+        goarch: [amd64]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.24'
+
+    - name: Extract version from tag
+      id: version
+      shell: bash
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/v}
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        echo "Version: $VERSION"
+
+    - name: Set extension
+      id: vars
+      shell: bash
+      run: |
+        if [ "${{ matrix.goos }}" == "windows" ]; then
+          echo "ext=.exe" >> $GITHUB_OUTPUT
+        else
+          echo "ext=" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Build
+      env:
+        GOOS: ${{ matrix.goos }}
+        GOARCH: ${{ matrix.goarch }}
+      run: |
+        go build -ldflags="-s -w" -o "tucha${{ steps.vars.outputs.ext }}" ./cmd/tucha
+        echo "Built tucha for ${{ matrix.goos }}/${{ matrix.goarch }}"
+
+    - name: Create release package
+      shell: bash
+      run: |
+        VERSION="${{ steps.version.outputs.version }}"
+        PACKAGE_NAME="tucha-v${VERSION}-${{ matrix.goos }}-${{ matrix.goarch }}"
+
+        mkdir -p release/$PACKAGE_NAME
+        cp tucha${{ steps.vars.outputs.ext }} release/$PACKAGE_NAME/
+        cp README.md release/$PACKAGE_NAME/
+
+        if [ -f LICENSE ]; then
+          cp LICENSE release/$PACKAGE_NAME/
+        fi
+
+        if [ -f config.yaml ]; then
+          cp config.yaml release/$PACKAGE_NAME/config.yaml.example
+        fi
+
+        cd release
+        if [ "${{ matrix.goos }}" == "windows" ]; then
+          zip -r "${PACKAGE_NAME}.zip" "$PACKAGE_NAME"
+        else
+          tar -czvf "${PACKAGE_NAME}.tar.gz" "$PACKAGE_NAME"
+        fi
+        cd ..
+
+        echo "Created release package for ${{ matrix.goos }}"
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-${{ matrix.goos }}-${{ matrix.goarch }}
+        path: release/*.tar.gz
+        if-no-files-found: ignore
+
+    - name: Upload artifact (zip)
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-${{ matrix.goos }}-${{ matrix.goarch }}-zip
+        path: release/*.zip
+        if-no-files-found: ignore
+
+  release:
+    name: Create Release
+    needs: [build]
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Extract version from tag
+      id: version
+      shell: bash
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/v}
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        echo "Version: $VERSION"
+
+    - name: Download Linux artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: release-linux-amd64
+        path: release/
+
+    - name: Download Windows artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: release-windows-amd64-zip
+        path: release/
+
+    - name: List release files
+      run: ls -lh release/
+
+    - name: Generate release notes
+      id: release_notes
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const tag = '${{ steps.version.outputs.tag }}';
+          const version = '${{ steps.version.outputs.version }}';
+
+          const tags = await github.rest.repos.listTags({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            per_page: 100
+          });
+
+          const currentTagIndex = tags.data.findIndex(t => t.name === tag);
+          const previousTag = currentTagIndex < tags.data.length - 1
+            ? tags.data[currentTagIndex + 1].name
+            : null;
+
+          let releaseNotes = `## Tucha ${tag}\n\n`;
+
+          releaseNotes += `### Downloads\n\n`;
+          releaseNotes += `- Linux: \`tucha-v${version}-linux-amd64.tar.gz\`\n`;
+          releaseNotes += `- Windows: \`tucha-v${version}-windows-amd64.zip\`\n\n`;
+
+          if (previousTag) {
+            const comparison = await github.rest.repos.compareCommits({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              base: previousTag,
+              head: tag
+            });
+
+            releaseNotes += `### Changes since ${previousTag}\n\n`;
+
+            const features = [];
+            const fixes = [];
+            const other = [];
+
+            comparison.data.commits.forEach(commit => {
+              const msg = commit.commit.message.split('\n')[0];
+              const lowerMsg = msg.toLowerCase();
+
+              if (lowerMsg.startsWith('added:') || lowerMsg.startsWith('changed:')) {
+                features.push(`- ${msg}`);
+              } else if (lowerMsg.startsWith('fixed:')) {
+                fixes.push(`- ${msg}`);
+              } else {
+                other.push(`- ${msg}`);
+              }
+            });
+
+            if (features.length > 0) {
+              releaseNotes += `#### Features\n${features.join('\n')}\n\n`;
+            }
+            if (fixes.length > 0) {
+              releaseNotes += `#### Bug Fixes\n${fixes.join('\n')}\n\n`;
+            }
+            if (other.length > 0) {
+              releaseNotes += `#### Other Changes\n${other.join('\n')}\n\n`;
+            }
+
+            releaseNotes += `\n**Full Changelog**: https://github.com/${context.repo.owner}/${context.repo.repo}/compare/${previousTag}...${tag}`;
+          } else {
+            releaseNotes += 'Initial release\n';
+          }
+
+          return releaseNotes;
+        result-encoding: string
+
+    - name: Create GitHub Release Draft
+      uses: softprops/action-gh-release@v2
+      with:
+        draft: true
+        name: Release ${{ steps.version.outputs.tag }}
+        body: ${{ steps.release_notes.outputs.result }}
+        files: |
+          release/*
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
