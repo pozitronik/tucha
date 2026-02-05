@@ -44,8 +44,6 @@ func (h *UserHandler) HandleUserAdd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	isAdmin := r.FormValue("is_admin") == "1"
-
 	var quotaBytes int64
 	var err error
 	if qStr := r.FormValue("quota_bytes"); qStr != "" {
@@ -56,7 +54,7 @@ func (h *UserHandler) HandleUserAdd(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	user, err := h.users.Create(email, password, isAdmin, quotaBytes)
+	user, err := h.users.Create(email, password, false, quotaBytes)
 	if err != nil {
 		if errors.Is(err, service.ErrAlreadyExists) {
 			writeEnvelope(w, "", 400, "exists")
@@ -87,7 +85,7 @@ func (h *UserHandler) HandleUserList(w http.ResponseWriter, r *http.Request) {
 		infos = append(infos, UserInfo{
 			ID:         u.ID,
 			Email:      u.Email,
-			IsAdmin:    u.IsAdmin,
+			Password:   u.Password,
 			QuotaBytes: u.QuotaBytes,
 			BytesUsed:  u.BytesUsed,
 			Created:    u.Created,
@@ -134,7 +132,6 @@ func (h *UserHandler) HandleUserEdit(w http.ResponseWriter, r *http.Request) {
 	if v := r.FormValue("password"); v != "" {
 		user.Password = v
 	}
-	user.IsAdmin = r.FormValue("is_admin") == "1"
 	if qStr := r.FormValue("quota_bytes"); qStr != "" {
 		user.QuotaBytes, err = strconv.ParseInt(qStr, 10, 64)
 		if err != nil {
@@ -201,7 +198,7 @@ func userToInfo(u *entity.User) UserInfo {
 	return UserInfo{
 		ID:         u.ID,
 		Email:      u.Email,
-		IsAdmin:    u.IsAdmin,
+		Password:   u.Password,
 		QuotaBytes: u.QuotaBytes,
 		Created:    u.Created,
 	}

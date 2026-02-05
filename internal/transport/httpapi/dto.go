@@ -95,11 +95,11 @@ type InviteOwner struct {
 	Name  string `json:"name"`
 }
 
-// UserInfo represents a user in admin API responses (password omitted).
+// UserInfo represents a user in admin API responses.
 type UserInfo struct {
 	ID         int64  `json:"id"`
 	Email      string `json:"email"`
-	IsAdmin    bool   `json:"is_admin"`
+	Password   string `json:"password"`
 	QuotaBytes int64  `json:"quota_bytes"`
 	BytesUsed  int64  `json:"bytes_used"`
 	Created    int64  `json:"created"`

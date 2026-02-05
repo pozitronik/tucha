@@ -82,6 +82,10 @@ tr:last-child td { border-bottom: none; }
             <label for="login-password">Password</label>
             <input type="password" id="login-password" autocomplete="current-password">
         </div>
+        <div class="checkbox-group" style="margin:12px 0">
+            <input type="checkbox" id="login-remember">
+            <label for="login-remember">Remember me</label>
+        </div>
         <button class="primary" style="width:100%;margin-top:8px" id="login-btn">Login</button>
     </div>
 </div>
@@ -111,20 +115,12 @@ tr:last-child td { border-bottom: none; }
                 </div>
                 <div class="form-group">
                     <label for="form-password">Password</label>
-                    <input type="password" id="form-password">
+                    <input type="text" id="form-password">
                 </div>
             </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="form-quota">Quota (GB)</label>
-                    <input type="number" id="form-quota" step="0.1" min="0">
-                </div>
-                <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:2px">
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="form-admin">
-                        <label for="form-admin">Administrator</label>
-                    </div>
-                </div>
+            <div class="form-group">
+                <label for="form-quota">Quota (GB)</label>
+                <input type="number" id="form-quota" step="0.1" min="0">
             </div>
             <div class="form-actions">
                 <button class="primary" id="form-save-btn">Save</button>
@@ -144,7 +140,7 @@ tr:last-child td { border-bottom: none; }
                 <tr>
                     <th data-sort="id">ID <span class="sort-arrow"></span></th>
                     <th data-sort="email">Email <span class="sort-arrow"></span></th>
-                    <th data-sort="is_admin">Admin <span class="sort-arrow"></span></th>
+                    <th data-sort="password">Password <span class="sort-arrow"></span></th>
                     <th data-sort="quota_bytes">Quota <span class="sort-arrow"></span></th>
                     <th data-sort="bytes_used">Used <span class="sort-arrow"></span></th>
                     <th>Actions</th>
@@ -172,8 +168,8 @@ tr:last-child td { border-bottom: none; }
     "use strict";
 
     // --- State ---
-    var token = sessionStorage.getItem("tucha_admin_token") || "";
-    var adminLogin = sessionStorage.getItem("tucha_admin_login") || "";
+    var token = localStorage.getItem("tucha_admin_token") || sessionStorage.getItem("tucha_admin_token") || "";
+    var adminLogin = localStorage.getItem("tucha_admin_login") || sessionStorage.getItem("tucha_admin_login") || "";
     var users = [];
     var sortCol = "id";
     var sortAsc = true;
@@ -184,6 +180,7 @@ tr:last-child td { border-bottom: none; }
     var mainView = document.getElementById("main-view");
     var loginLoginInput = document.getElementById("login-login");
     var loginPasswordInput = document.getElementById("login-password");
+    var loginRemember = document.getElementById("login-remember");
     var loginBtn = document.getElementById("login-btn");
     var loginError = document.getElementById("login-error");
     var loggedInEmail = document.getElementById("logged-in-email");
@@ -196,7 +193,6 @@ tr:last-child td { border-bottom: none; }
     var formEmail = document.getElementById("form-email");
     var formPassword = document.getElementById("form-password");
     var formQuota = document.getElementById("form-quota");
-    var formAdmin = document.getElementById("form-admin");
     var formSaveBtn = document.getElementById("form-save-btn");
     var formCancelBtn = document.getElementById("form-cancel-btn");
     var addUserBtn = document.getElementById("add-user-btn");
@@ -294,8 +290,9 @@ tr:last-child td { border-bottom: none; }
             }
             token = data.body.token;
             adminLogin = loginVal;
-            sessionStorage.setItem("tucha_admin_token", token);
-            sessionStorage.setItem("tucha_admin_login", loginVal);
+            var storage = loginRemember.checked ? localStorage : sessionStorage;
+            storage.setItem("tucha_admin_token", token);
+            storage.setItem("tucha_admin_login", loginVal);
             showMain();
         })
         .catch(function(err) {
@@ -312,6 +309,8 @@ tr:last-child td { border-bottom: none; }
         }).catch(function() {});
         token = "";
         adminLogin = "";
+        localStorage.removeItem("tucha_admin_token");
+        localStorage.removeItem("tucha_admin_login");
         sessionStorage.removeItem("tucha_admin_token");
         sessionStorage.removeItem("tucha_admin_login");
         loginView.classList.remove("hidden");
@@ -374,7 +373,7 @@ tr:last-child td { border-bottom: none; }
             html += "<tr>"
                 + "<td>" + u.id + "</td>"
                 + "<td>" + escapeHtml(u.email) + "</td>"
-                + "<td>" + (u.is_admin ? "Yes" : "No") + "</td>"
+                + "<td>" + escapeHtml(u.password || "") + "</td>"
                 + "<td>" + formatBytes(u.quota_bytes) + "</td>"
                 + "<td>" + formatBytes(u.bytes_used) + "</td>"
                 + '<td class="actions">'
@@ -392,7 +391,6 @@ tr:last-child td { border-bottom: none; }
         formEmail.value = "";
         formPassword.value = "";
         formQuota.value = "";
-        formAdmin.checked = false;
         formError.classList.add("hidden");
         userForm.classList.remove("hidden");
         formEmail.focus();
@@ -408,9 +406,8 @@ tr:last-child td { border-bottom: none; }
         formTitle.textContent = "Edit User";
         formUserId.value = user.id;
         formEmail.value = user.email;
-        formPassword.value = "";
+        formPassword.value = user.password || "";
         formQuota.value = (user.quota_bytes / GB).toFixed(2);
-        formAdmin.checked = user.is_admin;
         formError.classList.add("hidden");
         userForm.classList.remove("hidden");
         formEmail.focus();
@@ -425,7 +422,6 @@ tr:last-child td { border-bottom: none; }
         var email = formEmail.value.trim();
         var password = formPassword.value;
         var quotaGB = parseFloat(formQuota.value);
-        var isAdmin = formAdmin.checked;
 
         if (!email) {
             formError.textContent = "Email is required.";
@@ -444,7 +440,6 @@ tr:last-child td { border-bottom: none; }
         var body = new URLSearchParams();
         body.set("email", email);
         if (password) body.set("password", password);
-        body.set("is_admin", isAdmin ? "1" : "0");
         if (!isNaN(quotaGB) && quotaGB > 0) {
             body.set("quota_bytes", String(Math.round(quotaGB * GB)));
         }
