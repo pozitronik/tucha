@@ -95,7 +95,7 @@ func (s *FileService) Remove(userID int64, path vo.CloudPath) error {
 	if node != nil && node.HasContent() {
 		deleted, _ := s.contents.Decrement(node.Hash)
 		if deleted {
-			s.storage.Delete(node.Hash)
+			_ = s.storage.Delete(node.Hash)
 		}
 	}
 

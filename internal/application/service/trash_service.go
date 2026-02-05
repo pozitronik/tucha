@@ -115,7 +115,7 @@ func (s *TrashService) Empty(userID int64) error {
 				continue
 			}
 			if deleted {
-				s.storage.Delete(item.Hash)
+				_ = s.storage.Delete(item.Hash)
 			}
 		}
 	}

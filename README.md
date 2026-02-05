@@ -1,5 +1,10 @@
 # Tucha
 
+[![CI](https://github.com/pozitronik/tucha/actions/workflows/ci.yml/badge.svg)](https://github.com/pozitronik/tucha/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/pozitronik/tucha/branch/master/graph/badge.svg)](https://codecov.io/gh/pozitronik/tucha)
+[![Go Report Card](https://goreportcard.com/badge/github.com/pozitronik/tucha)](https://goreportcard.com/report/github.com/pozitronik/tucha)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+
 [Русский](README.ru.md)
 
 Open-source server implementing a cloud storage API v2 protocol, compatible with the cloud.mail.ru web API.

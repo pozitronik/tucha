@@ -158,7 +158,7 @@ func (h *FileHandler) HandleFileRemove(w http.ResponseWriter, r *http.Request) {
 	}
 
 	path := vo.NewCloudPath(homePath)
-	h.trash.Trash(authed.UserID, path, authed.UserID)
+	_ = h.trash.Trash(authed.UserID, path, authed.UserID)
 
 	writeSuccess(w, authed.Email, path.String())
 }

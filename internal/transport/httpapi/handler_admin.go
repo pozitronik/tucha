@@ -24,7 +24,7 @@ func NewAdminHandler(adminAuth *service.AdminAuthService) *AdminHandler {
 // HandleAdmin serves the admin panel SPA.
 func (h *AdminHandler) HandleAdmin(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write(adminHTML)
+	_, _ = w.Write(adminHTML)
 }
 
 // HandleLogin handles POST /admin/login - authenticate admin and issue bearer token.

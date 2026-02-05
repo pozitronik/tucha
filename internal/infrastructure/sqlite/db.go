@@ -129,7 +129,7 @@ func Open(dbPath string) (*DB, error) {
 	}
 	for _, m := range migrations {
 		// Ignore errors -- column already exists on fresh or previously migrated DBs.
-		conn.Exec(m)
+		_, _ = conn.Exec(m)
 	}
 
 	return &DB{conn: conn}, nil
