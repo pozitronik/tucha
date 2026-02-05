@@ -16,8 +16,11 @@ storage:
   content_dir: "./data/storage"
   quota_bytes: 17179869184  # 16 GiB
 
+# Logging settings
 logging:
-  level: "info"
+  level: "info"      # debug, info, warn, error (default: info)
+  output: "stdout"   # stdout, file, both (default: stdout)
+  # file: "./logs/tucha.log"  # required if output is "file" or "both"
 
 # Per-endpoint URLs for service discovery (/).
 # All values are optional; unset values are derived from server.external_url.

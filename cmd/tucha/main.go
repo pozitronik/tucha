@@ -6,11 +6,13 @@ import (
 	"flag"
 	"log"
 	"net/http"
+	"os"
 
 	"tucha/internal/application/service"
 	"tucha/internal/config"
 	"tucha/internal/infrastructure/contentstore"
 	"tucha/internal/infrastructure/hasher"
+	"tucha/internal/infrastructure/logger"
 	"tucha/internal/infrastructure/sqlite"
 	"tucha/internal/transport/httpapi"
 )
@@ -24,26 +26,38 @@ func main() {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
-	log.Printf("Tucha server starting")
-	log.Printf("  Listen: %s", cfg.Addr())
-	log.Printf("  External URL: %s", cfg.Server.ExternalURL)
-	log.Printf("  Admin: %s", cfg.Admin.Login)
-	log.Printf("  Database: %s", cfg.Storage.DBPath)
-	log.Printf("  Content dir: %s", cfg.Storage.ContentDir)
-	log.Printf("  Quota: %d bytes", cfg.Storage.QuotaBytes)
-	log.Printf("  Token TTL: %d seconds", cfg.Auth.TokenTTLSeconds)
+	// --- Logger (created first, used by all components) ---
+
+	appLogger, err := logger.New(cfg.Logging.Level, cfg.Logging.Output, cfg.Logging.File)
+	if err != nil {
+		log.Fatalf("Failed to create logger: %v", err)
+	}
+	defer appLogger.Close()
+
+	appLogger.Info("Tucha server starting")
+	appLogger.Info("  Listen: %s", cfg.Addr())
+	appLogger.Info("  External URL: %s", cfg.Server.ExternalURL)
+	appLogger.Info("  Admin: %s", cfg.Admin.Login)
+	appLogger.Info("  Database: %s", cfg.Storage.DBPath)
+	appLogger.Info("  Content dir: %s", cfg.Storage.ContentDir)
+	appLogger.Info("  Quota: %d bytes", cfg.Storage.QuotaBytes)
+	appLogger.Info("  Token TTL: %d seconds", cfg.Auth.TokenTTLSeconds)
+	appLogger.Debug("  Log level: %s", cfg.Logging.Level)
+	appLogger.Debug("  Log output: %s", cfg.Logging.Output)
 
 	// --- Infrastructure ---
 
 	db, err := sqlite.Open(cfg.Storage.DBPath)
 	if err != nil {
-		log.Fatalf("Failed to open database: %v", err)
+		appLogger.Error("Failed to open database: %v", err)
+		os.Exit(1)
 	}
 	defer db.Close()
 
 	diskStore, err := contentstore.NewDiskStore(cfg.Storage.ContentDir)
 	if err != nil {
-		log.Fatalf("Failed to create content store: %v", err)
+		appLogger.Error("Failed to create content store: %v", err)
+		os.Exit(1)
 	}
 
 	mrCloudHasher := hasher.NewMrCloud()
@@ -76,7 +90,7 @@ func main() {
 
 	presenter := httpapi.NewPresenter()
 
-	tokenH := httpapi.NewTokenHandler(tokenSvc, cfg.Auth.TokenTTLSeconds)
+	tokenH := httpapi.NewTokenHandler(tokenSvc, cfg.Auth.TokenTTLSeconds, appLogger)
 	csrfH := httpapi.NewCSRFHandler(authSvc)
 	dispatchH := httpapi.NewDispatchHandler(authSvc, cfg.Server.ExternalURL)
 	folderH := httpapi.NewFolderHandler(authSvc, folderSvc, publishSvc, presenter)
@@ -97,8 +111,9 @@ func main() {
 
 	// --- Start server ---
 
-	log.Printf("Tucha server listening on %s", cfg.Addr())
+	appLogger.Info("Tucha server listening on %s", cfg.Addr())
 	if err := http.ListenAndServe(cfg.Addr(), mux); err != nil {
-		log.Fatalf("Server failed: %v", err)
+		appLogger.Error("Server failed: %v", err)
+		os.Exit(1)
 	}
 }

@@ -46,7 +46,9 @@ type AuthConfig struct {
 
 // LoggingConfig holds logging settings.
 type LoggingConfig struct {
-	Level string `yaml:"level"`
+	Level  string `yaml:"level"`  // DEBUG, INFO, WARN, ERROR (default: INFO)
+	Output string `yaml:"output"` // stdout, file, both (default: stdout)
+	File   string `yaml:"file"`   // Path when output is "file" or "both"
 }
 
 // EndpointsConfig holds per-endpoint URLs for service discovery.
@@ -93,6 +95,14 @@ func (c *Config) applyDefaults() {
 		c.Auth.TokenTTLSeconds = 86400 // 24 hours
 	}
 
+	// Logging defaults
+	if c.Logging.Level == "" {
+		c.Logging.Level = "info"
+	}
+	if c.Logging.Output == "" {
+		c.Logging.Output = "stdout"
+	}
+
 	// Endpoint defaults
 	base := strings.TrimRight(c.Server.ExternalURL, "/")
 	if c.Endpoints.API == "" {
@@ -135,5 +145,12 @@ func (c *Config) validate() error {
 	if c.Storage.QuotaBytes <= 0 {
 		return fmt.Errorf("storage.quota_bytes must be positive")
 	}
+
+	// Logging validation: file path required for file/both output modes
+	output := strings.ToLower(c.Logging.Output)
+	if (output == "file" || output == "both") && c.Logging.File == "" {
+		return fmt.Errorf("logging.file is required when logging.output is %q", c.Logging.Output)
+	}
+
 	return nil
 }

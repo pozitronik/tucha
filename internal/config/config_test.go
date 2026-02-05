@@ -232,3 +232,92 @@ endpoints:
 		t.Errorf("default OAuth = %q", cfg.Endpoints.OAuth)
 	}
 }
+
+func TestLoad_loggingDefaults(t *testing.T) {
+	p := writeConfig(t, validYAML)
+	cfg, err := Load(p)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+
+	if cfg.Logging.Level != "info" {
+		t.Errorf("Logging.Level = %q, want %q", cfg.Logging.Level, "info")
+	}
+	if cfg.Logging.Output != "stdout" {
+		t.Errorf("Logging.Output = %q, want %q", cfg.Logging.Output, "stdout")
+	}
+}
+
+func TestLoad_loggingFileRequired(t *testing.T) {
+	tests := []struct {
+		name   string
+		output string
+	}{
+		{"file output", "file"},
+		{"both output", "both"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			yaml := `
+server:
+  host: "0.0.0.0"
+  port: 8080
+  external_url: "http://localhost:8080"
+admin:
+  login: "admin"
+  password: "secret"
+storage:
+  db_path: "/tmp/test.db"
+  content_dir: "/tmp/content"
+  quota_bytes: 1073741824
+logging:
+  level: "info"
+  output: "` + tt.output + `"
+`
+			p := writeConfig(t, yaml)
+			_, err := Load(p)
+			if err == nil {
+				t.Error("expected validation error for missing logging.file")
+			}
+			if !strings.Contains(err.Error(), "logging.file") {
+				t.Errorf("error %q does not contain 'logging.file'", err.Error())
+			}
+		})
+	}
+}
+
+func TestLoad_loggingWithFile(t *testing.T) {
+	yaml := `
+server:
+  host: "0.0.0.0"
+  port: 8080
+  external_url: "http://localhost:8080"
+admin:
+  login: "admin"
+  password: "secret"
+storage:
+  db_path: "/tmp/test.db"
+  content_dir: "/tmp/content"
+  quota_bytes: 1073741824
+logging:
+  level: "debug"
+  output: "both"
+  file: "/tmp/tucha.log"
+`
+	p := writeConfig(t, yaml)
+	cfg, err := Load(p)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+
+	if cfg.Logging.Level != "debug" {
+		t.Errorf("Logging.Level = %q, want %q", cfg.Logging.Level, "debug")
+	}
+	if cfg.Logging.Output != "both" {
+		t.Errorf("Logging.Output = %q, want %q", cfg.Logging.Output, "both")
+	}
+	if cfg.Logging.File != "/tmp/tucha.log" {
+		t.Errorf("Logging.File = %q, want %q", cfg.Logging.File, "/tmp/tucha.log")
+	}
+}

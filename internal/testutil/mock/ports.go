@@ -63,3 +63,47 @@ func (m *HasherMock) ComputeReader(r io.Reader, size int64) (vo.ContentHash, err
 	}
 	return m.FixedHash, nil
 }
+
+// LogEntry represents a captured log message for testing.
+type LogEntry struct {
+	Level string
+	Msg   string
+	Args  []any
+}
+
+// LoggerMock is a test double for port.Logger.
+type LoggerMock struct {
+	DebugFunc func(msg string, args ...any)
+	InfoFunc  func(msg string, args ...any)
+	WarnFunc  func(msg string, args ...any)
+	ErrorFunc func(msg string, args ...any)
+	Captured  []LogEntry
+}
+
+func (m *LoggerMock) Debug(msg string, args ...any) {
+	m.Captured = append(m.Captured, LogEntry{Level: "DEBUG", Msg: msg, Args: args})
+	if m.DebugFunc != nil {
+		m.DebugFunc(msg, args...)
+	}
+}
+
+func (m *LoggerMock) Info(msg string, args ...any) {
+	m.Captured = append(m.Captured, LogEntry{Level: "INFO", Msg: msg, Args: args})
+	if m.InfoFunc != nil {
+		m.InfoFunc(msg, args...)
+	}
+}
+
+func (m *LoggerMock) Warn(msg string, args ...any) {
+	m.Captured = append(m.Captured, LogEntry{Level: "WARN", Msg: msg, Args: args})
+	if m.WarnFunc != nil {
+		m.WarnFunc(msg, args...)
+	}
+}
+
+func (m *LoggerMock) Error(msg string, args ...any) {
+	m.Captured = append(m.Captured, LogEntry{Level: "ERROR", Msg: msg, Args: args})
+	if m.ErrorFunc != nil {
+		m.ErrorFunc(msg, args...)
+	}
+}
