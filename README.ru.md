@@ -2,7 +2,7 @@
 
 Открытая имплементация сервера и протокола облачного хранилища, совместимого с web API cloud.mail.ru.
 
-[API_SPEC.md](Описание API)
+[Описание API](API_SPEC.md)
 
 ## Быстрый старт
 
@@ -186,4 +186,4 @@ go test ./internal/application/service/ -run TestAdminAuth_concurrent -race
 | Стандартная библиотека | Все остальное                      |
 
 # Лицензия
-[LICENSE](GNU GPL v3.0)
+[LICENSE: GNU GPL v3.0](LICENSE)

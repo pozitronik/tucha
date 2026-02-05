@@ -2,7 +2,7 @@
 
 Open-source server implementing a cloud storage API v2 protocol, compatible with the cloud.mail.ru web API.
 
-[API_SPEC.md](API Specification)
+[API Specification](API_SPEC.md)
 
 ## Quick Start
 
@@ -186,4 +186,4 @@ go test ./internal/application/service/ -run TestAdminAuth_concurrent -race
 | Standard library     | Everything else                         |
 
 # License
-[LICENSE](GNU GPL v3.0)
+[LICENSE: GNU GPL v3.0](LICENSE)
