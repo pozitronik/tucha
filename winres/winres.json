@@ -1,0 +1,63 @@
+{
+  "RT_GROUP_ICON": {
+    "APP": {
+      "0000": [
+        "icon-16.png",
+        "icon-32.png",
+        "icon-48.png",
+        "icon-256.png"
+      ]
+    }
+  },
+  "RT_MANIFEST": {
+    "#1": {
+      "0409": {
+        "identity": {
+          "name": "Tucha",
+          "version": "0.1.0.0"
+        },
+        "description": "Tucha: open implementation of cloud.mail.ru web API",
+        "minimum-os": "win7",
+        "execution-level": "asInvoker",
+        "ui-access": false,
+        "auto-elevate": false,
+        "dpi-awareness": "system",
+        "disable-theming": false,
+        "disable-window-filtering": false,
+        "high-resolution-scrolling-aware": false,
+        "ultra-high-resolution-scrolling-aware": false,
+        "long-path-aware": false,
+        "printer-driver-isolation": false,
+        "gdi-scaling": false,
+        "segment-heap": false,
+        "use-common-controls-v6": true
+      }
+    }
+  },
+  "RT_VERSION": {
+    "#1": {
+      "0000": {
+        "fixed": {
+          "file_version": "0.1.0.0",
+          "product_version": "0.1.0.0"
+        },
+        "info": {
+          "0409": {
+            "Comments": "GitHub: https://github.com/pozitronik/tucha | Open implementation of cloud.mail.ru web API ",
+            "CompanyName": "Pavel Dubrovsky",
+            "FileDescription": "Tucha: open implementation of cloud.mail.ru web API",
+            "FileVersion": "0.1.0",
+            "InternalName": "tucha",
+            "LegalCopyright": "GNU General Public License v3.0",
+            "LegalTrademarks": "",
+            "OriginalFilename": "tucha.exe",
+            "PrivateBuild": "",
+            "ProductName": "tucha",
+            "ProductVersion": "0.1.0",
+            "SpecialBuild": ""
+          }
+        }
+      }
+    }
+  }
+}
