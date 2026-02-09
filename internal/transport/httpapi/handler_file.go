@@ -261,6 +261,18 @@ func (h *FileHandler) HandleFileHistory(w http.ResponseWriter, r *http.Request) 
 	}
 
 	path := vo.NewCloudPath(homePath)
+
+	// Verify the file exists before returning history.
+	node, err := h.files.Get(authed.UserID, path)
+	if err != nil {
+		writeHomeError(w, authed.Email, 500, "unknown")
+		return
+	}
+	if node == nil {
+		writeHomeError(w, authed.Email, 404, "not_exists")
+		return
+	}
+
 	versions, err := h.files.History(authed.UserID, path, authed.VersionHistory)
 	if err != nil {
 		writeHomeError(w, authed.Email, 500, "unknown")

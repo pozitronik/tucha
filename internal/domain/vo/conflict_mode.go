@@ -23,7 +23,7 @@ func ParseConflictMode(raw string) (ConflictMode, error) {
 		return ConflictStrict, nil
 	case "rename", "":
 		return ConflictRename, nil
-	case "replace":
+	case "replace", "rewrite":
 		return ConflictReplace, nil
 	default:
 		return "", fmt.Errorf("unknown conflict mode: %q", raw)

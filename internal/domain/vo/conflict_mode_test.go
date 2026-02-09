@@ -11,6 +11,7 @@ func TestParseConflictMode(t *testing.T) {
 		{"strict", ConflictStrict, false},
 		{"rename", ConflictRename, false},
 		{"replace", ConflictReplace, false},
+		{"rewrite", ConflictReplace, false},
 		{"", ConflictRename, false},
 		{"overwrite", "", true},
 	}
