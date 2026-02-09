@@ -45,7 +45,7 @@ func main() {
 	case cli.CmdConfigCheck:
 		runConfigCheck(parsed.ConfigPath)
 
-	case cli.CmdUserList, cli.CmdUserAdd, cli.CmdUserRemove, cli.CmdUserPwd, cli.CmdUserQuota, cli.CmdUserInfo:
+	case cli.CmdUserList, cli.CmdUserAdd, cli.CmdUserRemove, cli.CmdUserPwd, cli.CmdUserQuota, cli.CmdUserSizeLimit, cli.CmdUserHistory, cli.CmdUserInfo:
 		runUserCommand(parsed)
 
 	case cli.CmdRun, cli.CmdBackground:
@@ -130,6 +130,12 @@ func runUserCommand(parsed *cli.CLI) {
 
 	case cli.CmdUserQuota:
 		cmdErr = cmds.SetQuota(os.Stdout, parsed.Args[0], parsed.Args[1])
+
+	case cli.CmdUserSizeLimit:
+		cmdErr = cmds.SetSizeLimit(os.Stdout, parsed.Args[0], parsed.Args[1])
+
+	case cli.CmdUserHistory:
+		cmdErr = cmds.SetHistory(os.Stdout, parsed.Args[0], parsed.Args[1])
 
 	case cli.CmdUserInfo:
 		cmdErr = cmds.Info(os.Stdout, parsed.Args[0])

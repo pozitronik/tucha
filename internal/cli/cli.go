@@ -85,7 +85,7 @@ func Parse(args []string) (*CLI, error) {
 // parseUserCommand parses the --user subcommand.
 func parseUserCommand(cli *CLI, args []string) (*CLI, error) {
 	if len(args) == 0 {
-		return nil, fmt.Errorf("--user requires a subcommand (list, add, remove, pwd, quota, info)")
+		return nil, fmt.Errorf("--user requires a subcommand (list, add, remove, pwd, quota, sizelimit, history, info)")
 	}
 
 	subCmd := strings.ToLower(args[0])
@@ -123,6 +123,20 @@ func parseUserCommand(cli *CLI, args []string) (*CLI, error) {
 			return nil, fmt.Errorf("--user quota requires <email> <quota>")
 		}
 		cli.Args = rest // email, quota
+
+	case "sizelimit":
+		cli.Command = CmdUserSizeLimit
+		if len(rest) < 2 {
+			return nil, fmt.Errorf("--user sizelimit requires <email> <size>")
+		}
+		cli.Args = rest // email, size
+
+	case "history":
+		cli.Command = CmdUserHistory
+		if len(rest) < 2 {
+			return nil, fmt.Errorf("--user history requires <email> <on|off>")
+		}
+		cli.Args = rest // email, on|off
 
 	case "info":
 		cli.Command = CmdUserInfo

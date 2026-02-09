@@ -5,19 +5,21 @@ type Command int
 
 // CLI commands.
 const (
-	CmdRun         Command = iota // Default: run server in foreground
-	CmdHelp                       // Show help message
-	CmdVersion                    // Show version and exit
-	CmdBackground                 // Run server in background (daemon mode)
-	CmdStatus                     // Show if server is running
-	CmdStop                       // Stop background server
-	CmdConfigCheck                // Validate configuration file
-	CmdUserList                   // List users
-	CmdUserAdd                    // Add user
-	CmdUserRemove                 // Remove user
-	CmdUserPwd                    // Set user password
-	CmdUserQuota                  // Set user quota
-	CmdUserInfo                   // Show user details
+	CmdRun           Command = iota // Default: run server in foreground
+	CmdHelp                         // Show help message
+	CmdVersion                      // Show version and exit
+	CmdBackground                   // Run server in background (daemon mode)
+	CmdStatus                       // Show if server is running
+	CmdStop                         // Stop background server
+	CmdConfigCheck                  // Validate configuration file
+	CmdUserList                     // List users
+	CmdUserAdd                      // Add user
+	CmdUserRemove                   // Remove user
+	CmdUserPwd                      // Set user password
+	CmdUserQuota                    // Set user quota
+	CmdUserSizeLimit                // Set user file size limit
+	CmdUserHistory                  // Set user version history mode
+	CmdUserInfo                     // Show user details
 )
 
 // Exit codes.
@@ -47,12 +49,14 @@ Commands:
   --config-check     Validate configuration file
 
 User Management:
-  --user list [mask]               List users (optional email filter)
-  --user add <email> <pwd> [quota] Add user (quota: "16GB", "512MB")
-  --user remove <email>            Remove user
-  --user pwd <email> <pwd>         Set password
-  --user quota <email> <quota>     Set quota
-  --user info <email>              Show user details
+  --user list [mask]                   List users (optional email filter)
+  --user add <email> <pwd> [quota]     Add user (quota: "16GB", "512MB")
+  --user remove <email>                Remove user
+  --user pwd <email> <pwd>             Set password
+  --user quota <email> <quota>         Set quota
+  --user sizelimit <email> <size>      Set file size limit (0 = unlimited)
+  --user history <email> <on|off>      Set version history (on = paid tier)
+  --user info <email>                  Show user details
 
 Examples:
   tucha                            Start in foreground

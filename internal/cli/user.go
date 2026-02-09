@@ -153,6 +153,67 @@ func (c *UserCommands) SetQuota(w io.Writer, email, quotaStr string) error {
 	return nil
 }
 
+// SetSizeLimit updates a user's file size limit.
+func (c *UserCommands) SetSizeLimit(w io.Writer, email, sizeStr string) error {
+	sizeBytes, err := ParseByteSize(sizeStr)
+	if err != nil {
+		return fmt.Errorf("invalid size %q: %w", sizeStr, err)
+	}
+
+	user, err := c.userRepo.GetByEmail(email)
+	if err != nil {
+		return fmt.Errorf("looking up user: %w", err)
+	}
+	if user == nil {
+		return fmt.Errorf("user not found: %s", email)
+	}
+
+	user.FileSizeLimit = sizeBytes
+	if err := c.userService.Update(user); err != nil {
+		return fmt.Errorf("updating file size limit: %w", err)
+	}
+
+	if sizeBytes == 0 {
+		fmt.Fprintf(w, "File size limit for %s: unlimited\n", email)
+	} else {
+		fmt.Fprintf(w, "File size limit for %s: %s\n", email, FormatByteSize(sizeBytes))
+	}
+	return nil
+}
+
+// SetHistory updates a user's version history setting.
+func (c *UserCommands) SetHistory(w io.Writer, email, mode string) error {
+	var enabled bool
+	switch strings.ToLower(mode) {
+	case "on", "true", "1", "paid":
+		enabled = true
+	case "off", "false", "0", "free":
+		enabled = false
+	default:
+		return fmt.Errorf("invalid mode %q: use on/off", mode)
+	}
+
+	user, err := c.userRepo.GetByEmail(email)
+	if err != nil {
+		return fmt.Errorf("looking up user: %w", err)
+	}
+	if user == nil {
+		return fmt.Errorf("user not found: %s", email)
+	}
+
+	user.VersionHistory = enabled
+	if err := c.userService.Update(user); err != nil {
+		return fmt.Errorf("updating version history: %w", err)
+	}
+
+	label := "free"
+	if enabled {
+		label = "paid"
+	}
+	fmt.Fprintf(w, "Version history for %s: %s\n", email, label)
+	return nil
+}
+
 // Info displays detailed information about a user.
 func (c *UserCommands) Info(w io.Writer, email string) error {
 	user, err := c.userRepo.GetByEmail(email)
