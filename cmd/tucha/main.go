@@ -253,7 +253,7 @@ func runServer(parsed *cli.CLI) {
 	dispatchH := httpapi.NewDispatchHandler(authSvc, cfg.Server.ExternalURL)
 	folderH := httpapi.NewFolderHandler(authSvc, folderSvc, publishSvc, presenter)
 	fileH := httpapi.NewFileHandler(authSvc, fileSvc, trashSvc, presenter)
-	uploadH := httpapi.NewUploadHandler(authSvc, uploadSvc)
+	uploadH := httpapi.NewUploadHandler(authSvc, uploadSvc, fileSvc)
 	downloadH := httpapi.NewDownloadHandler(authSvc, downloadSvc)
 	spaceH := httpapi.NewSpaceHandler(authSvc, quotaSvc)
 	selfConfigH := httpapi.NewSelfConfigureHandler(cfg.Endpoints)
