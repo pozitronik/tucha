@@ -23,7 +23,7 @@ func (r *UserRepository) Upsert(email, password string, isAdmin bool, quotaBytes
 	now := time.Now().Unix()
 
 	res, err := r.db.Exec(
-		`INSERT INTO users (email, password, is_admin, quota_bytes, created) VALUES (?, ?, ?, ?, ?)
+		`INSERT INTO users (email, password, is_admin, quota_bytes, file_size_limit, version_history, created) VALUES (?, ?, ?, ?, 0, 0, ?)
 		 ON CONFLICT(email) DO UPDATE SET password = excluded.password, is_admin = excluded.is_admin`,
 		email, password, boolToInt(isAdmin), quotaBytes, now,
 	)
@@ -47,8 +47,8 @@ func (r *UserRepository) Create(user *entity.User) (int64, error) {
 	now := time.Now().Unix()
 
 	res, err := r.db.Exec(
-		`INSERT INTO users (email, password, is_admin, quota_bytes, created) VALUES (?, ?, ?, ?, ?)`,
-		user.Email, user.Password, boolToInt(user.IsAdmin), user.QuotaBytes, now,
+		`INSERT INTO users (email, password, is_admin, quota_bytes, file_size_limit, version_history, created) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		user.Email, user.Password, boolToInt(user.IsAdmin), user.QuotaBytes, user.FileSizeLimit, boolToInt(user.VersionHistory), now,
 	)
 	if err != nil {
 		return 0, fmt.Errorf("creating user: %w", err)
@@ -65,11 +65,11 @@ func (r *UserRepository) Create(user *entity.User) (int64, error) {
 // GetByID retrieves a user by ID. Returns nil, nil if not found.
 func (r *UserRepository) GetByID(id int64) (*entity.User, error) {
 	u := &entity.User{}
-	var isAdmin int
+	var isAdmin, versionHistory int
 	err := r.db.QueryRow(
-		"SELECT id, email, password, is_admin, quota_bytes, created FROM users WHERE id = ?",
+		"SELECT id, email, password, is_admin, quota_bytes, file_size_limit, version_history, created FROM users WHERE id = ?",
 		id,
-	).Scan(&u.ID, &u.Email, &u.Password, &isAdmin, &u.QuotaBytes, &u.Created)
+	).Scan(&u.ID, &u.Email, &u.Password, &isAdmin, &u.QuotaBytes, &u.FileSizeLimit, &versionHistory, &u.Created)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -77,17 +77,18 @@ func (r *UserRepository) GetByID(id int64) (*entity.User, error) {
 		return nil, fmt.Errorf("getting user by id: %w", err)
 	}
 	u.IsAdmin = isAdmin != 0
+	u.VersionHistory = versionHistory != 0
 	return u, nil
 }
 
 // GetByEmail retrieves a user by email. Returns nil, nil if not found.
 func (r *UserRepository) GetByEmail(email string) (*entity.User, error) {
 	u := &entity.User{}
-	var isAdmin int
+	var isAdmin, versionHistory int
 	err := r.db.QueryRow(
-		"SELECT id, email, password, is_admin, quota_bytes, created FROM users WHERE email = ?",
+		"SELECT id, email, password, is_admin, quota_bytes, file_size_limit, version_history, created FROM users WHERE email = ?",
 		email,
-	).Scan(&u.ID, &u.Email, &u.Password, &isAdmin, &u.QuotaBytes, &u.Created)
+	).Scan(&u.ID, &u.Email, &u.Password, &isAdmin, &u.QuotaBytes, &u.FileSizeLimit, &versionHistory, &u.Created)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -95,12 +96,13 @@ func (r *UserRepository) GetByEmail(email string) (*entity.User, error) {
 		return nil, fmt.Errorf("getting user by email: %w", err)
 	}
 	u.IsAdmin = isAdmin != 0
+	u.VersionHistory = versionHistory != 0
 	return u, nil
 }
 
 // List returns all users.
 func (r *UserRepository) List() ([]entity.User, error) {
-	rows, err := r.db.Query("SELECT id, email, password, is_admin, quota_bytes, created FROM users ORDER BY id")
+	rows, err := r.db.Query("SELECT id, email, password, is_admin, quota_bytes, file_size_limit, version_history, created FROM users ORDER BY id")
 	if err != nil {
 		return nil, fmt.Errorf("listing users: %w", err)
 	}
@@ -109,11 +111,12 @@ func (r *UserRepository) List() ([]entity.User, error) {
 	var users []entity.User
 	for rows.Next() {
 		var u entity.User
-		var isAdmin int
-		if err := rows.Scan(&u.ID, &u.Email, &u.Password, &isAdmin, &u.QuotaBytes, &u.Created); err != nil {
+		var isAdmin, versionHistory int
+		if err := rows.Scan(&u.ID, &u.Email, &u.Password, &isAdmin, &u.QuotaBytes, &u.FileSizeLimit, &versionHistory, &u.Created); err != nil {
 			return nil, fmt.Errorf("scanning user: %w", err)
 		}
 		u.IsAdmin = isAdmin != 0
+		u.VersionHistory = versionHistory != 0
 		users = append(users, u)
 	}
 	return users, rows.Err()
@@ -122,8 +125,8 @@ func (r *UserRepository) List() ([]entity.User, error) {
 // Update modifies an existing user's fields.
 func (r *UserRepository) Update(user *entity.User) error {
 	res, err := r.db.Exec(
-		`UPDATE users SET email = ?, password = ?, is_admin = ?, quota_bytes = ? WHERE id = ?`,
-		user.Email, user.Password, boolToInt(user.IsAdmin), user.QuotaBytes, user.ID,
+		`UPDATE users SET email = ?, password = ?, is_admin = ?, quota_bytes = ?, file_size_limit = ?, version_history = ? WHERE id = ?`,
+		user.Email, user.Password, boolToInt(user.IsAdmin), user.QuotaBytes, user.FileSizeLimit, boolToInt(user.VersionHistory), user.ID,
 	)
 	if err != nil {
 		return fmt.Errorf("updating user: %w", err)

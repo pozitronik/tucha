@@ -220,6 +220,7 @@ func runServer(parsed *cli.CLI) {
 	contentRepo := sqlite.NewContentRepository(db)
 	trashRepo := sqlite.NewTrashRepository(db)
 	shareRepo := sqlite.NewShareRepository(db)
+	fileVersionRepo := sqlite.NewFileVersionRepository(db)
 
 	// --- Application services ---
 
@@ -229,7 +230,7 @@ func runServer(parsed *cli.CLI) {
 	quotaSvc := service.NewQuotaService(nodeRepo, userRepo)
 	userSvc := service.NewUserService(userRepo, nodeRepo, cfg.Storage.QuotaBytes)
 	folderSvc := service.NewFolderService(nodeRepo)
-	fileSvc := service.NewFileService(nodeRepo, contentRepo, diskStore, quotaSvc)
+	fileSvc := service.NewFileService(nodeRepo, contentRepo, diskStore, quotaSvc, fileVersionRepo)
 	uploadSvc := service.NewUploadService(mrCloudHasher, diskStore, contentRepo)
 	downloadSvc := service.NewDownloadService(nodeRepo, diskStore)
 	thumbnailSvc := service.NewThumbnailService(nodeRepo, diskStore, thumbGen)

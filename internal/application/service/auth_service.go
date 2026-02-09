@@ -8,10 +8,12 @@ import (
 
 // AuthenticatedUser holds the resolved user context from a validated token.
 type AuthenticatedUser struct {
-	UserID    int64
-	Email     string
-	IsAdmin   bool
-	CSRFToken string
+	UserID         int64
+	Email          string
+	IsAdmin        bool
+	CSRFToken      string
+	FileSizeLimit  int64
+	VersionHistory bool
 }
 
 // AuthService validates access tokens and resolves user context.
@@ -36,9 +38,11 @@ func (s *AuthService) ResolveUser(userID int64) (*AuthenticatedUser, error) {
 		return nil, nil
 	}
 	return &AuthenticatedUser{
-		UserID:  user.ID,
-		Email:   user.Email,
-		IsAdmin: user.IsAdmin,
+		UserID:         user.ID,
+		Email:          user.Email,
+		IsAdmin:        user.IsAdmin,
+		FileSizeLimit:  user.FileSizeLimit,
+		VersionHistory: user.VersionHistory,
 	}, nil
 }
 
@@ -72,9 +76,11 @@ func (s *AuthService) Validate(accessToken string) (*AuthenticatedUser, error) {
 	}
 
 	return &AuthenticatedUser{
-		UserID:    user.ID,
-		Email:     user.Email,
-		IsAdmin:   user.IsAdmin,
-		CSRFToken: token.CSRFToken,
+		UserID:         user.ID,
+		Email:          user.Email,
+		IsAdmin:        user.IsAdmin,
+		CSRFToken:      token.CSRFToken,
+		FileSizeLimit:  user.FileSizeLimit,
+		VersionHistory: user.VersionHistory,
 	}, nil
 }

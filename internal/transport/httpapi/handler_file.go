@@ -247,6 +247,44 @@ func (h *FileHandler) HandleFileMove(w http.ResponseWriter, r *http.Request) {
 	writeSuccess(w, authed.Email, node.Home.String())
 }
 
+// HandleFileHistory handles GET /api/v2/file/history - file version history.
+func (h *FileHandler) HandleFileHistory(w http.ResponseWriter, r *http.Request) {
+	authed := authenticate(w, r, h.auth)
+	if authed == nil {
+		return
+	}
+
+	homePath := r.URL.Query().Get("home")
+	if homePath == "" {
+		writeHomeError(w, authed.Email, 400, "required")
+		return
+	}
+
+	path := vo.NewCloudPath(homePath)
+	versions, err := h.files.History(authed.UserID, path, authed.VersionHistory)
+	if err != nil {
+		writeHomeError(w, authed.Email, 500, "unknown")
+		return
+	}
+
+	items := make([]FileVersionItem, 0, len(versions))
+	for _, v := range versions {
+		item := FileVersionItem{
+			Name: v.Name,
+			Home: v.Home.String(),
+			Size: v.Size,
+			Time: v.Time,
+		}
+		if authed.VersionHistory {
+			item.Hash = v.Hash.String()
+			item.Rev = v.Rev
+		}
+		items = append(items, item)
+	}
+
+	writeSuccess(w, authed.Email, items)
+}
+
 // HandleFileCopy handles POST /api/v2/file/copy.
 // Note: both home and folder have explicit leading "/" from client.
 func (h *FileHandler) HandleFileCopy(w http.ResponseWriter, r *http.Request) {

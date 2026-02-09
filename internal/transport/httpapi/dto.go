@@ -97,10 +97,22 @@ type InviteOwner struct {
 
 // UserInfo represents a user in admin API responses.
 type UserInfo struct {
-	ID         int64  `json:"id"`
-	Email      string `json:"email"`
-	Password   string `json:"password"`
-	QuotaBytes int64  `json:"quota_bytes"`
-	BytesUsed  int64  `json:"bytes_used"`
-	Created    int64  `json:"created"`
+	ID             int64  `json:"id"`
+	Email          string `json:"email"`
+	Password       string `json:"password"`
+	QuotaBytes     int64  `json:"quota_bytes"`
+	BytesUsed      int64  `json:"bytes_used"`
+	FileSizeLimit  int64  `json:"file_size_limit"`
+	VersionHistory bool   `json:"version_history"`
+	Created        int64  `json:"created"`
+}
+
+// FileVersionItem represents a single entry in a file version history response.
+type FileVersionItem struct {
+	Name string `json:"name"`
+	Home string `json:"home"`
+	Hash string `json:"hash,omitempty"`
+	Size int64  `json:"size"`
+	Rev  int64  `json:"rev,omitempty"`
+	Time int64  `json:"time"`
 }

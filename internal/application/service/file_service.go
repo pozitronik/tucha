@@ -14,6 +14,7 @@ type FileService struct {
 	contents repository.ContentRepository
 	storage  port.ContentStorage
 	quota    *QuotaService
+	versions repository.FileVersionRepository
 }
 
 // NewFileService creates a new FileService.
@@ -22,12 +23,14 @@ func NewFileService(
 	contents repository.ContentRepository,
 	storage port.ContentStorage,
 	quota *QuotaService,
+	versions repository.FileVersionRepository,
 ) *FileService {
 	return &FileService{
 		nodes:    nodes,
 		contents: contents,
 		storage:  storage,
 		quota:    quota,
+		versions: versions,
 	}
 }
 
@@ -85,7 +88,25 @@ func (s *FileService) AddByHash(userID int64, path vo.CloudPath, hash vo.Content
 	if err := s.nodes.EnsurePath(userID, path.Parent()); err != nil {
 		return nil, err
 	}
-	return s.nodes.CreateFile(userID, path, hash, size)
+
+	node, err := s.nodes.CreateFile(userID, path, hash, size)
+	if err != nil {
+		return nil, err
+	}
+
+	// Record version entry; errors are silently ignored.
+	if s.versions != nil {
+		_ = s.versions.Insert(&entity.FileVersion{
+			UserID: userID,
+			Home:   node.Home,
+			Name:   node.Name,
+			Hash:   node.Hash,
+			Size:   node.Size,
+			Rev:    node.Rev,
+		})
+	}
+
+	return node, nil
 }
 
 // Remove deletes a file or folder, handling content reference counting and disk cleanup.
@@ -121,4 +142,25 @@ func (s *FileService) Copy(userID int64, srcPath, targetFolder vo.CloudPath) (*e
 		return nil, err
 	}
 	return s.nodes.Copy(userID, srcPath, targetFolder)
+}
+
+// History returns the version history for a file at the given path.
+// When versionHistory is false (free tier), Hash and Rev are zeroed out.
+func (s *FileService) History(userID int64, path vo.CloudPath, versionHistory bool) ([]entity.FileVersion, error) {
+	versions, err := s.versions.ListByPath(userID, path)
+	if err != nil {
+		return nil, err
+	}
+	if versions == nil {
+		versions = []entity.FileVersion{}
+	}
+
+	if !versionHistory {
+		for i := range versions {
+			versions[i].Hash = vo.ContentHash{}
+			versions[i].Rev = 0
+		}
+	}
+
+	return versions, nil
 }

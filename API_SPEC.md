@@ -415,7 +415,79 @@ GET <server_url>/api/v2/file?weblink=<public_link_with_slash><url_encoded_path>&
 
 **Response:** Standard envelope with `body` containing a single directory item (same fields as listing items).
 
-### 5.2 User Space
+### 5.2 File Version History
+
+**Endpoint:** `GET <server_url>/api/v2/file/history`
+
+**Query parameters:**
+
+```
+home=<url_encoded_path>&access_token=<token>
+```
+
+| Parameter | Description                  |
+|-----------|------------------------------|
+| `home`    | URL-encoded cloud file path  |
+
+**Response (paid account):**
+
+```json
+{
+  "body": [
+    {
+      "hash": "DEADBEEF01234567890ABCDEF01234567890ABC",
+      "uid": 1,
+      "time": 1700000000,
+      "rev": 3,
+      "name": "test.txt",
+      "path": "/test.txt",
+      "size": 12345
+    }
+  ],
+  "status": 200
+}
+```
+
+**Response (free account):**
+
+Free accounts receive the same structure but without `hash` and `rev` fields:
+
+```json
+{
+  "body": [
+    {
+      "uid": 1,
+      "time": 1700000000,
+      "name": "test.txt",
+      "path": "/test.txt",
+      "size": 12345
+    }
+  ],
+  "status": 200
+}
+```
+
+**Version entry fields:**
+
+| JSON Key | Type    | Paid | Free | Description                                      |
+|----------|---------|------|------|--------------------------------------------------|
+| `hash`   | string  | Yes  | No   | Cloud hash (40-char uppercase hex)               |
+| `uid`    | integer | Yes  | Yes  | User identifier who created this version         |
+| `time`   | int64   | Yes  | Yes  | Version timestamp (Unix timestamp, seconds)      |
+| `rev`    | integer | Yes  | No   | Revision number                                  |
+| `name`   | string  | Yes  | Yes  | File name                                        |
+| `path`   | string  | Yes  | Yes  | Full cloud path                                  |
+| `size`   | int64   | Yes  | Yes  | File size in bytes                               |
+
+**Notes:**
+- The `body` is an array (not an object), unlike most other endpoints
+- Empty `body` array (`[]`) means no version history available
+- Missing `hash` field means restore/rollback via `file/add` is not possible (free account limitation)
+- Versions are ordered chronologically
+- Restore a specific version as a copy: use `file/add` (Section 7.2) with the version's `hash` and `size`, a new target path, and `conflict=rename`
+- Rollback to a specific version: use `file/add` with the version's `hash` and `size`, the original path, and `conflict=rewrite`
+
+### 5.3 User Space
 
 **Endpoint:** `GET <server_url>/api/v2/user/space?access_token=<token>`
 
@@ -996,7 +1068,23 @@ The `home` field is empty/absent when the invite has not been mounted yet.
 }
 ```
 
-### 16.7 Access Levels
+### 16.7 File Version Entry
+
+```json
+{
+  "hash": "C172C6E2FF47284FF33F348FEA7EECE532F6C051",
+  "uid": 1,
+  "time": 1700000000,
+  "rev": 3,
+  "name": "example.txt",
+  "path": "/example.txt",
+  "size": 12345
+}
+```
+
+On free accounts, `hash` and `rev` fields are absent. See Section 5.2 for complete field descriptions.
+
+### 16.8 Access Levels
 
 | API String    | Description      |
 |---------------|------------------|
@@ -1057,5 +1145,6 @@ The `home` field is empty/absent when the invite has not been mounted yet.
 | 28 | POST   | `/api/v2/trashbin/restore`                       | Restore from trash           |
 | 29 | POST   | `/api/v2/trashbin/empty`                         | Empty trashbin               |
 | 30 | GET    | `<thumbnail_shard>/<preset>/<path>?...`          | Download thumbnail           |
+| 31 | GET    | `/api/v2/file/history`                           | Get file version history     |
 
 All `/api/v2/*` endpoints are relative to `<server_url>`.

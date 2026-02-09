@@ -32,12 +32,24 @@ func (h *UploadHandler) HandleUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Fast reject via Content-Length header if file size limit is set.
+	if authed.FileSizeLimit > 0 && r.ContentLength > 0 && r.ContentLength > authed.FileSizeLimit {
+		http.Error(w, "File too large", http.StatusRequestEntityTooLarge)
+		return
+	}
+
 	data, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Failed to read body", http.StatusInternalServerError)
 		return
 	}
 	defer r.Body.Close()
+
+	// Check actual body size against limit.
+	if authed.FileSizeLimit > 0 && int64(len(data)) > authed.FileSizeLimit {
+		http.Error(w, "File too large", http.StatusRequestEntityTooLarge)
+		return
+	}
 
 	hash, err := h.uploads.Upload(data)
 	if err != nil {

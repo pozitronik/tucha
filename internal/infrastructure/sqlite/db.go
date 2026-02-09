@@ -86,6 +86,18 @@ CREATE TABLE IF NOT EXISTS tokens (
     expires_at    INTEGER NOT NULL,
     created       INTEGER NOT NULL DEFAULT (strftime('%s','now'))
 );
+
+CREATE TABLE IF NOT EXISTS file_versions (
+    id      INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    home    TEXT NOT NULL,
+    name    TEXT NOT NULL,
+    hash    TEXT NOT NULL,
+    size    INTEGER NOT NULL,
+    rev     INTEGER NOT NULL,
+    time    INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+);
+CREATE INDEX IF NOT EXISTS idx_file_versions_user_home ON file_versions(user_id, home);
 `
 
 // DB wraps the SQLite database connection.
@@ -126,6 +138,8 @@ func Open(dbPath string) (*DB, error) {
 		"ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0",
 		"ALTER TABLE users ADD COLUMN quota_bytes INTEGER NOT NULL DEFAULT 17179869184",
 		"ALTER TABLE nodes ADD COLUMN weblink TEXT",
+		"ALTER TABLE users ADD COLUMN file_size_limit INTEGER NOT NULL DEFAULT 0",
+		"ALTER TABLE users ADD COLUMN version_history INTEGER NOT NULL DEFAULT 0",
 	}
 	for _, m := range migrations {
 		// Ignore errors -- column already exists on fresh or previously migrated DBs.

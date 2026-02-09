@@ -316,6 +316,28 @@ func (m *TrashRepositoryMock) DeleteAll(userID int64) ([]entity.TrashItem, error
 	return nil, nil
 }
 
+// -- FileVersionRepositoryMock --
+
+// FileVersionRepositoryMock is a test double for repository.FileVersionRepository.
+type FileVersionRepositoryMock struct {
+	InsertFunc     func(version *entity.FileVersion) error
+	ListByPathFunc func(userID int64, path vo.CloudPath) ([]entity.FileVersion, error)
+}
+
+func (m *FileVersionRepositoryMock) Insert(version *entity.FileVersion) error {
+	if m.InsertFunc != nil {
+		return m.InsertFunc(version)
+	}
+	return nil
+}
+
+func (m *FileVersionRepositoryMock) ListByPath(userID int64, path vo.CloudPath) ([]entity.FileVersion, error) {
+	if m.ListByPathFunc != nil {
+		return m.ListByPathFunc(userID, path)
+	}
+	return nil, nil
+}
+
 // -- ShareRepositoryMock --
 
 // ShareRepositoryMock is a test double for repository.ShareRepository.

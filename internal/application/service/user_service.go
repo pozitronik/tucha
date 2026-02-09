@@ -86,7 +86,8 @@ func (s *UserService) ListWithUsage() ([]UserWithUsage, error) {
 // Update modifies an existing user's fields.
 // Zero-value fields are treated as "no change": empty Email and Password
 // preserve the existing values, and QuotaBytes <= 0 keeps the current quota.
-// IsAdmin is always applied because the caller must set it explicitly.
+// IsAdmin, FileSizeLimit, and VersionHistory are always applied because
+// the caller must set them explicitly.
 func (s *UserService) Update(user *entity.User) error {
 	existing, err := s.users.GetByID(user.ID)
 	if err != nil {
@@ -106,6 +107,8 @@ func (s *UserService) Update(user *entity.User) error {
 	if user.QuotaBytes > 0 {
 		existing.QuotaBytes = user.QuotaBytes
 	}
+	existing.FileSizeLimit = user.FileSizeLimit
+	existing.VersionHistory = user.VersionHistory
 
 	return s.users.Update(existing)
 }

@@ -49,7 +49,7 @@ func (c *UserCommands) List(w io.Writer, pattern string) error {
 	}
 
 	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(tw, "Email\tPassword\tQuota\tUsed\tAdmin")
+	fmt.Fprintln(tw, "Email\tPassword\tQuota\tUsed\tAdmin\tSizeLimit\tHistory")
 
 	for _, u := range users {
 		quota := FormatByteSize(u.QuotaBytes)
@@ -58,7 +58,15 @@ func (c *UserCommands) List(w io.Writer, pattern string) error {
 		if u.IsAdmin {
 			admin = "yes"
 		}
-		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\n", u.Email, u.Password, quota, used, admin)
+		sizeLimit := "unlimited"
+		if u.FileSizeLimit > 0 {
+			sizeLimit = FormatByteSize(u.FileSizeLimit)
+		}
+		history := "free"
+		if u.VersionHistory {
+			history = "paid"
+		}
+		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", u.Email, u.Password, quota, used, admin, sizeLimit, history)
 	}
 
 	return tw.Flush()
@@ -169,15 +177,27 @@ func (c *UserCommands) Info(w io.Writer, email string) error {
 		}
 	}
 
-	fmt.Fprintf(w, "Email:    %s\n", user.Email)
-	fmt.Fprintf(w, "Password: %s\n", user.Password)
-	fmt.Fprintf(w, "Admin:    %v\n", user.IsAdmin)
-	fmt.Fprintf(w, "Quota:    %s\n", FormatByteSize(user.QuotaBytes))
-	fmt.Fprintf(w, "Used:     %s\n", FormatByteSize(used))
+	fmt.Fprintf(w, "Email:          %s\n", user.Email)
+	fmt.Fprintf(w, "Password:       %s\n", user.Password)
+	fmt.Fprintf(w, "Admin:          %v\n", user.IsAdmin)
+	fmt.Fprintf(w, "Quota:          %s\n", FormatByteSize(user.QuotaBytes))
+	fmt.Fprintf(w, "Used:           %s\n", FormatByteSize(used))
 
 	if user.QuotaBytes > 0 {
 		pct := float64(used) / float64(user.QuotaBytes) * 100
-		fmt.Fprintf(w, "Usage:    %.1f%%\n", pct)
+		fmt.Fprintf(w, "Usage:          %.1f%%\n", pct)
+	}
+
+	if user.FileSizeLimit > 0 {
+		fmt.Fprintf(w, "File size limit: %s\n", FormatByteSize(user.FileSizeLimit))
+	} else {
+		fmt.Fprintf(w, "File size limit: unlimited\n")
+	}
+
+	if user.VersionHistory {
+		fmt.Fprintf(w, "Version history: paid\n")
+	} else {
+		fmt.Fprintf(w, "Version history: free\n")
 	}
 
 	return nil

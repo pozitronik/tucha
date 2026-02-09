@@ -54,6 +54,17 @@ func (h *UserHandler) HandleUserAdd(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	var fileSizeLimit int64
+	if fsStr := r.FormValue("file_size_limit"); fsStr != "" {
+		fileSizeLimit, err = strconv.ParseInt(fsStr, 10, 64)
+		if err != nil {
+			writeEnvelope(w, "", 400, "invalid")
+			return
+		}
+	}
+
+	versionHistory := r.FormValue("version_history") == "true" || r.FormValue("version_history") == "1"
+
 	user, err := h.users.Create(email, password, false, quotaBytes)
 	if err != nil {
 		if errors.Is(err, service.ErrAlreadyExists) {
@@ -62,6 +73,16 @@ func (h *UserHandler) HandleUserAdd(w http.ResponseWriter, r *http.Request) {
 		}
 		writeEnvelope(w, "", 500, "unknown")
 		return
+	}
+
+	// Apply optional settings if provided.
+	if fileSizeLimit != 0 || versionHistory {
+		user.FileSizeLimit = fileSizeLimit
+		user.VersionHistory = versionHistory
+		if err := h.users.Update(user); err != nil {
+			writeEnvelope(w, "", 500, "unknown")
+			return
+		}
 	}
 
 	writeSuccess(w, "", userToInfo(user))
@@ -83,12 +104,14 @@ func (h *UserHandler) HandleUserList(w http.ResponseWriter, r *http.Request) {
 	infos := make([]UserInfo, 0, len(users))
 	for _, u := range users {
 		infos = append(infos, UserInfo{
-			ID:         u.ID,
-			Email:      u.Email,
-			Password:   u.Password,
-			QuotaBytes: u.QuotaBytes,
-			BytesUsed:  u.BytesUsed,
-			Created:    u.Created,
+			ID:             u.ID,
+			Email:          u.Email,
+			Password:       u.Password,
+			QuotaBytes:     u.QuotaBytes,
+			BytesUsed:      u.BytesUsed,
+			FileSizeLimit:  u.FileSizeLimit,
+			VersionHistory: u.VersionHistory,
+			Created:        u.Created,
 		})
 	}
 
@@ -138,6 +161,16 @@ func (h *UserHandler) HandleUserEdit(w http.ResponseWriter, r *http.Request) {
 			writeEnvelope(w, "", 400, "invalid")
 			return
 		}
+	}
+	if fsStr := r.FormValue("file_size_limit"); fsStr != "" {
+		user.FileSizeLimit, err = strconv.ParseInt(fsStr, 10, 64)
+		if err != nil {
+			writeEnvelope(w, "", 400, "invalid")
+			return
+		}
+	}
+	if v := r.FormValue("version_history"); v != "" {
+		user.VersionHistory = v == "true" || v == "1"
 	}
 
 	if err := h.users.Update(user); err != nil {
@@ -196,10 +229,12 @@ func (h *UserHandler) HandleUserRemove(w http.ResponseWriter, r *http.Request) {
 // userToInfo converts a User pointer to a UserInfo DTO.
 func userToInfo(u *entity.User) UserInfo {
 	return UserInfo{
-		ID:         u.ID,
-		Email:      u.Email,
-		Password:   u.Password,
-		QuotaBytes: u.QuotaBytes,
-		Created:    u.Created,
+		ID:             u.ID,
+		Email:          u.Email,
+		Password:       u.Password,
+		QuotaBytes:     u.QuotaBytes,
+		FileSizeLimit:  u.FileSizeLimit,
+		VersionHistory: u.VersionHistory,
+		Created:        u.Created,
 	}
 }

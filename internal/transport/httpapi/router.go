@@ -49,6 +49,7 @@ func RegisterRoutes(
 	mux.HandleFunc("/api/v2/file/move", fileH.HandleFileMove)
 	mux.HandleFunc("/api/v2/file/copy", fileH.HandleFileCopy)
 	mux.HandleFunc("/api/v2/file/add", fileH.HandleFileAdd)
+	mux.HandleFunc("/api/v2/file/history", fileH.HandleFileHistory)
 
 	// Upload and download.
 	mux.HandleFunc("/upload/", uploadH.HandleUpload)

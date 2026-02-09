@@ -206,6 +206,97 @@ func TestUserService_Delete_notFound(t *testing.T) {
 	}
 }
 
+func TestUserService_Update_fileSizeLimitAlwaysApplied(t *testing.T) {
+	existing := &entity.User{
+		ID:            1,
+		Email:         "u@example.com",
+		Password:      "p",
+		QuotaBytes:    1000,
+		FileSizeLimit: 5000,
+	}
+	var updated *entity.User
+
+	svc := NewUserService(
+		&mock.UserRepositoryMock{
+			GetByIDFunc: func(id int64) (*entity.User, error) { return existing, nil },
+			UpdateFunc: func(user *entity.User) error {
+				updated = user
+				return nil
+			},
+		},
+		&mock.NodeRepositoryMock{},
+		1073741824,
+	)
+
+	// Sending FileSizeLimit=0 should override existing 5000.
+	err := svc.Update(&entity.User{ID: 1, FileSizeLimit: 0})
+	if err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+	if updated.FileSizeLimit != 0 {
+		t.Errorf("FileSizeLimit = %d, want 0", updated.FileSizeLimit)
+	}
+}
+
+func TestUserService_Update_versionHistoryAlwaysApplied(t *testing.T) {
+	existing := &entity.User{
+		ID:             1,
+		Email:          "u@example.com",
+		Password:       "p",
+		QuotaBytes:     1000,
+		VersionHistory: true,
+	}
+	var updated *entity.User
+
+	svc := NewUserService(
+		&mock.UserRepositoryMock{
+			GetByIDFunc: func(id int64) (*entity.User, error) { return existing, nil },
+			UpdateFunc: func(user *entity.User) error {
+				updated = user
+				return nil
+			},
+		},
+		&mock.NodeRepositoryMock{},
+		1073741824,
+	)
+
+	// Sending VersionHistory=false should override existing true.
+	err := svc.Update(&entity.User{ID: 1, VersionHistory: false})
+	if err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+	if updated.VersionHistory {
+		t.Error("VersionHistory should be overridden to false")
+	}
+}
+
+func TestUserService_Create_defaultSettings(t *testing.T) {
+	var createdUser *entity.User
+
+	svc := NewUserService(
+		&mock.UserRepositoryMock{
+			GetByEmailFunc: func(email string) (*entity.User, error) { return nil, nil },
+			CreateFunc: func(user *entity.User) (int64, error) {
+				createdUser = user
+				return 1, nil
+			},
+		},
+		&mock.NodeRepositoryMock{},
+		1073741824,
+	)
+
+	_, err := svc.Create("user@example.com", "pass", false, 0)
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	if createdUser.FileSizeLimit != 0 {
+		t.Errorf("FileSizeLimit = %d, want 0", createdUser.FileSizeLimit)
+	}
+	if createdUser.VersionHistory {
+		t.Error("VersionHistory should default to false")
+	}
+}
+
 func TestUserService_Update_isAdminAlwaysApplied(t *testing.T) {
 	existing := &entity.User{
 		ID:         1,
