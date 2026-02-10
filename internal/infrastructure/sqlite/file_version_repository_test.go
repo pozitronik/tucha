@@ -109,8 +109,12 @@ func TestFileVersionRepository_FullAddByHashFlow(t *testing.T) {
 	path := vo.NewCloudPath("/test/file.bin")
 
 	// Register content so AddByHash's Exists check passes.
-	contentRepo.Insert(hash1, 1024)
-	contentRepo.Insert(hash2, 2048)
+	if err := contentRepo.Insert(hash1, 1024); err != nil {
+		t.Fatalf("insert content 1: %v", err)
+	}
+	if err := contentRepo.Insert(hash2, 2048); err != nil {
+		t.Fatalf("insert content 2: %v", err)
+	}
 
 	// === First AddByHash flow ===
 	// 1. EnsurePath for parent

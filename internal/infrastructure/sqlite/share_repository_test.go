@@ -139,11 +139,17 @@ func TestShareLifecycle_TrashClonesRWMount(t *testing.T) {
 	mountID, _ := userRepo.Create(&entity.User{Email: "mount@test.com", Password: "pass"})
 
 	// Owner's tree.
-	nodeRepo.CreateRootNode(ownerID)
-	nodeRepo.CreateFolder(ownerID, vo.NewCloudPath("/shared"))
+	if _, err := nodeRepo.CreateRootNode(ownerID); err != nil {
+		t.Fatalf("create owner root: %v", err)
+	}
+	if _, err := nodeRepo.CreateFolder(ownerID, vo.NewCloudPath("/shared")); err != nil {
+		t.Fatalf("create owner folder: %v", err)
+	}
 
 	// Mount user's tree.
-	nodeRepo.CreateRootNode(mountID)
+	if _, err := nodeRepo.CreateRootNode(mountID); err != nil {
+		t.Fatalf("create mount root: %v", err)
+	}
 
 	// Create share and accept it (Accept stores mount details; Create does not).
 	shareObj := &entity.Share{
@@ -195,9 +201,15 @@ func TestShareLifecycle_ResolveMountAfterAccept(t *testing.T) {
 	ownerID, _ := userRepo.Create(&entity.User{Email: "owner@test.com", Password: "pass"})
 	mountID, _ := userRepo.Create(&entity.User{Email: "mount@test.com", Password: "pass"})
 
-	nodeRepo.CreateRootNode(ownerID)
-	nodeRepo.CreateFolder(ownerID, vo.NewCloudPath("/shared_dir"))
-	nodeRepo.CreateRootNode(mountID)
+	if _, err := nodeRepo.CreateRootNode(ownerID); err != nil {
+		t.Fatalf("create owner root: %v", err)
+	}
+	if _, err := nodeRepo.CreateFolder(ownerID, vo.NewCloudPath("/shared_dir")); err != nil {
+		t.Fatalf("create owner folder: %v", err)
+	}
+	if _, err := nodeRepo.CreateRootNode(mountID); err != nil {
+		t.Fatalf("create mount root: %v", err)
+	}
 
 	// Create and accept share.
 	shareObj := &entity.Share{
