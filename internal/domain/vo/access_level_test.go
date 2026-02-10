@@ -43,8 +43,8 @@ func TestAccessLevel_APIString(t *testing.T) {
 		level AccessLevel
 		want  string
 	}{
-		{AccessReadOnly, "r"},
-		{AccessReadWrite, "rw"},
+		{AccessReadOnly, "read_only"},
+		{AccessReadWrite, "read_write"},
 		{AccessLevel("unknown"), "unknown"},
 	}
 	for _, tt := range tests {

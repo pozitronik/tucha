@@ -132,8 +132,8 @@ func TestPresenter_ShareToMember(t *testing.T) {
 		access     vo.AccessLevel
 		wantAccess string
 	}{
-		{vo.AccessReadOnly, "r"},
-		{vo.AccessReadWrite, "rw"},
+		{vo.AccessReadOnly, "read_only"},
+		{vo.AccessReadWrite, "read_write"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.wantAccess, func(t *testing.T) {
@@ -172,8 +172,8 @@ func TestPresenter_ShareToIncomingInvite_pending(t *testing.T) {
 	if inv.Owner.Email != "owner@example.com" {
 		t.Errorf("Owner.Email = %q", inv.Owner.Email)
 	}
-	if inv.Access != "rw" {
-		t.Errorf("Access = %q, want %q", inv.Access, "rw")
+	if inv.Access != "read_write" {
+		t.Errorf("Access = %q, want %q", inv.Access, "read_write")
 	}
 	if inv.Name != "folder" {
 		t.Errorf("Name = %q, want %q", inv.Name, "folder")

@@ -30,14 +30,7 @@ func (a AccessLevel) String() string {
 	return string(a)
 }
 
-// APIString returns the short API representation ("r" or "rw").
+// APIString returns the API representation ("read_only" or "read_write").
 func (a AccessLevel) APIString() string {
-	switch a {
-	case AccessReadOnly:
-		return "r"
-	case AccessReadWrite:
-		return "rw"
-	default:
-		return string(a)
-	}
+	return string(a)
 }
