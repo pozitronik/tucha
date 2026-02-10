@@ -164,7 +164,25 @@ func (h *FileHandler) HandleFileAdd(w http.ResponseWriter, r *http.Request) {
 	}
 
 	path := vo.NewCloudPath(homePath)
-	node, err := h.files.AddByHash(authed.UserID, path, hash, size, conflict)
+	targetUserID := authed.UserID
+	targetPath := path
+
+	// Check if the path falls under a mounted share.
+	resolution, mErr := h.shares.ResolveMount(authed.UserID, path)
+	if mErr != nil {
+		writeHomeError(w, authed.Email, 500, "unknown")
+		return
+	}
+	if resolution != nil {
+		if resolution.Share.Access == vo.AccessReadOnly {
+			writeHomeError(w, authed.Email, 403, "readonly")
+			return
+		}
+		targetUserID = resolution.Share.OwnerID
+		targetPath = resolution.OwnerPath
+	}
+
+	node, err := h.files.AddByHash(targetUserID, targetPath, hash, size, conflict)
 	if err != nil {
 		switch {
 		case errors.Is(err, service.ErrContentNotFound):
@@ -183,7 +201,15 @@ func (h *FileHandler) HandleFileAdd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeSuccess(w, authed.Email, node.Home.String())
+	// Remap the response path to the mount namespace if needed.
+	responsePath := node.Home.String()
+	if resolution != nil {
+		ownerPrefix := resolution.OwnerPath.Parent().String()
+		mountPrefix := path.Parent().String()
+		responsePath = strings.Replace(responsePath, ownerPrefix, mountPrefix, 1)
+	}
+
+	writeSuccess(w, authed.Email, responsePath)
 }
 
 // HandleFileRemove handles POST /api/v2/file/remove - delete file/folder.

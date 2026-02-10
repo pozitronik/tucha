@@ -73,7 +73,12 @@ func (h *UploadHandler) HandleUpload(w http.ResponseWriter, r *http.Request) {
 		targetPath := path
 
 		// Check if the path falls under a mounted share.
-		if resolution, mErr := h.shares.ResolveMount(authed.UserID, path); mErr == nil && resolution != nil {
+		resolution, mErr := h.shares.ResolveMount(authed.UserID, path)
+		if mErr != nil {
+			http.Error(w, "Failed to check mount", http.StatusInternalServerError)
+			return
+		}
+		if resolution != nil {
 			if resolution.Share.Access == vo.AccessReadOnly {
 				http.Error(w, "Forbidden", http.StatusForbidden)
 				return
