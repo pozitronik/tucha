@@ -420,6 +420,74 @@ func TestShareService_Mount_conflictRename(t *testing.T) {
 	}
 }
 
+func TestShareService_Mount_normalizesLeadingSlash(t *testing.T) {
+	share := mock.NewTestShare(1, "/shared", "user@example.com")
+	user := mock.NewTestUser(2, "user@example.com")
+	var acceptedHome string
+
+	svc := NewShareService(
+		&mock.ShareRepositoryMock{
+			GetByInviteTokenFunc: func(token string) (*entity.Share, error) {
+				return share, nil
+			},
+			AcceptFunc: func(inviteToken string, mountUserID int64, mountHome string) error {
+				acceptedHome = mountHome
+				return nil
+			},
+		},
+		&mock.NodeRepositoryMock{},
+		&mock.ContentRepositoryMock{},
+		&mock.UserRepositoryMock{
+			GetByIDFunc: func(id int64) (*entity.User, error) { return user, nil },
+		},
+	)
+
+	// Client sends mount name WITH leading slash -- must not produce "//shared".
+	err := svc.Mount(2, "/shared", share.InviteToken, vo.ConflictRename)
+	if err != nil {
+		t.Fatalf("Mount: %v", err)
+	}
+	if acceptedHome != "/shared" {
+		t.Errorf("mountHome = %q, want %q (no double slash)", acceptedHome, "/shared")
+	}
+}
+
+func TestShareService_ResolveMount_doubleSlashMountHome(t *testing.T) {
+	uid := int64(2)
+	// Simulate a share stored with malformed MountHome (double leading slash).
+	mountedShare := entity.Share{
+		ID:        1,
+		OwnerID:   1,
+		Home:      vo.NewCloudPath("/Documents"),
+		MountHome: "//SharedDocs",
+		Status:    vo.ShareAccepted,
+	}
+	mountedShare.MountUserID = &uid
+
+	svc := NewShareService(
+		&mock.ShareRepositoryMock{
+			ListMountedByUserFunc: func(userID int64) ([]entity.Share, error) {
+				return []entity.Share{mountedShare}, nil
+			},
+		},
+		&mock.NodeRepositoryMock{},
+		&mock.ContentRepositoryMock{},
+		&mock.UserRepositoryMock{},
+	)
+
+	// Path uses normalized single-slash form.
+	res, err := svc.ResolveMount(uid, vo.NewCloudPath("/SharedDocs/file.txt"))
+	if err != nil {
+		t.Fatalf("ResolveMount: %v", err)
+	}
+	if res == nil {
+		t.Fatal("ResolveMount returned nil for double-slash MountHome")
+	}
+	if res.OwnerPath.String() != "/Documents/file.txt" {
+		t.Errorf("OwnerPath = %q, want %q", res.OwnerPath.String(), "/Documents/file.txt")
+	}
+}
+
 func TestShareService_Unmount_success(t *testing.T) {
 	share := mock.NewTestShare(1, "/shared", "user@example.com")
 

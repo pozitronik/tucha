@@ -140,6 +140,9 @@ func (s *ShareService) Mount(userID int64, mountName string, inviteToken string,
 		return ErrForbidden
 	}
 
+	// Normalize mount name: strip leading slash to avoid double-slash (e.g., "//dir").
+	mountName = strings.TrimLeft(mountName, "/")
+
 	// Check if mount point already exists and handle conflict
 	mountHome := "/" + mountName
 	mountPath := vo.NewCloudPath(mountHome)
@@ -254,7 +257,8 @@ func (s *ShareService) ResolveMount(userID int64, path vo.CloudPath) (*MountReso
 	pathStr := path.String()
 	for i := range all {
 		share := &all[i]
-		mountHome := share.MountHome
+		// Normalize MountHome to avoid double-slash mismatches.
+		mountHome := vo.NewCloudPath(share.MountHome).String()
 		ownerHome := share.Home.String()
 
 		if pathStr == mountHome {
