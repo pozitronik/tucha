@@ -251,7 +251,7 @@ func runServer(parsed *cli.CLI) {
 	tokenH := httpapi.NewTokenHandler(tokenSvc, cfg.Auth.TokenTTLSeconds, appLogger)
 	csrfH := httpapi.NewCSRFHandler(authSvc)
 	dispatchH := httpapi.NewDispatchHandler(authSvc, cfg.Server.ExternalURL)
-	folderH := httpapi.NewFolderHandler(authSvc, folderSvc, publishSvc, presenter)
+	folderH := httpapi.NewFolderHandler(authSvc, folderSvc, shareSvc, publishSvc, presenter)
 	fileH := httpapi.NewFileHandler(authSvc, fileSvc, trashSvc, presenter)
 	uploadH := httpapi.NewUploadHandler(authSvc, uploadSvc, fileSvc)
 	downloadH := httpapi.NewDownloadHandler(authSvc, downloadSvc)

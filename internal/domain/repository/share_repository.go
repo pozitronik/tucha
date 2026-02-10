@@ -40,4 +40,7 @@ type ShareRepository interface {
 	// GetByMountPath finds a share by mount user and mount path.
 	// Returns nil, nil if not found.
 	GetByMountPath(userID int64, mountHome string) (*entity.Share, error)
+
+	// ListMountedByUser returns all accepted shares mounted by the given user.
+	ListMountedByUser(userID int64) ([]entity.Share, error)
 }

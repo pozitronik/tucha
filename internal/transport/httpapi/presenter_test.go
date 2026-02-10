@@ -185,6 +185,76 @@ func TestPresenter_ShareToIncomingInvite(t *testing.T) {
 	}
 }
 
+func TestPresenter_MountedShareToFolderItem(t *testing.T) {
+	p := NewPresenter()
+	share := &entity.Share{
+		ID:      1,
+		OwnerID: 10,
+		Home:    vo.NewCloudPath("/Documents"),
+	}
+	ownerFolder := &entity.Node{
+		Name: "Documents",
+		Home: vo.NewCloudPath("/Documents"),
+		Type: vo.NodeTypeFolder,
+		Size: 5000,
+		Tree: "tree-abc",
+		Rev:  3,
+		GRev: 7,
+	}
+	subCount := &FolderCount{Folders: 2, Files: 10}
+
+	item := p.MountedShareToFolderItem(share, ownerFolder, subCount, "/SharedDocs")
+
+	if item.Name != "SharedDocs" {
+		t.Errorf("Name = %q, want %q", item.Name, "SharedDocs")
+	}
+	if item.Home != "/SharedDocs" {
+		t.Errorf("Home = %q, want %q", item.Home, "/SharedDocs")
+	}
+	if item.Type != "folder" {
+		t.Errorf("Type = %q, want %q", item.Type, "folder")
+	}
+	if item.Kind != "shared" {
+		t.Errorf("Kind = %q, want %q", item.Kind, "shared")
+	}
+	if item.Size != 5000 {
+		t.Errorf("Size = %d, want 5000", item.Size)
+	}
+	if item.Tree != "tree-abc" {
+		t.Errorf("Tree = %q, want %q", item.Tree, "tree-abc")
+	}
+	if item.Count == nil || item.Count.Folders != 2 || item.Count.Files != 10 {
+		t.Errorf("Count = %+v, want Folders=2 Files=10", item.Count)
+	}
+}
+
+func TestPresenter_MountedShareToFolderItem_nilOwner(t *testing.T) {
+	p := NewPresenter()
+	share := &entity.Share{
+		ID:      1,
+		OwnerID: 10,
+		Home:    vo.NewCloudPath("/Deleted"),
+	}
+
+	item := p.MountedShareToFolderItem(share, nil, nil, "/MountedDeleted")
+
+	if item.Name != "MountedDeleted" {
+		t.Errorf("Name = %q, want %q", item.Name, "MountedDeleted")
+	}
+	if item.Home != "/MountedDeleted" {
+		t.Errorf("Home = %q, want %q", item.Home, "/MountedDeleted")
+	}
+	if item.Kind != "shared" {
+		t.Errorf("Kind = %q, want %q", item.Kind, "shared")
+	}
+	if item.Size != 0 {
+		t.Errorf("Size = %d, want 0", item.Size)
+	}
+	if item.Tree != "" {
+		t.Errorf("Tree = %q, want empty", item.Tree)
+	}
+}
+
 func TestPresenter_BuildFolderListing(t *testing.T) {
 	p := NewPresenter()
 	folder := &entity.Node{

@@ -92,6 +92,37 @@ func (p *Presenter) ShareToIncomingInvite(share *entity.Share, ownerEmail string
 	}
 }
 
+// MountedShareToFolderItem converts a mounted share to a FolderItem for display
+// in the mounting user's folder listing. ownerFolder is the shared folder node
+// in the owner's tree (may be nil if the owner deleted it). subCount provides
+// the folder/file count within the shared folder. mountPath is the path as it
+// appears in the mounting user's tree.
+func (p *Presenter) MountedShareToFolderItem(
+	share *entity.Share,
+	ownerFolder *entity.Node,
+	subCount *FolderCount,
+	mountPath string,
+) FolderItem {
+	name := vo.NewCloudPath(mountPath).Name()
+	item := FolderItem{
+		Name: name,
+		Home: mountPath,
+		Type: "folder",
+		Kind: "shared",
+	}
+
+	if ownerFolder != nil {
+		item.Size = ownerFolder.Size
+		item.Tree = ownerFolder.Tree
+		item.Rev = ownerFolder.Rev
+		item.GRev = ownerFolder.GRev
+	}
+
+	item.Count = subCount
+
+	return item
+}
+
 // BuildFolderListing builds a complete FolderListing DTO from a folder node and its children items.
 func (p *Presenter) BuildFolderListing(
 	folder *entity.Node,

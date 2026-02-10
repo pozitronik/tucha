@@ -352,6 +352,7 @@ type ShareRepositoryMock struct {
 	RejectFunc              func(inviteToken string) error
 	UnmountFunc             func(userID int64, mountHome string) (*entity.Share, error)
 	GetByMountPathFunc      func(userID int64, mountHome string) (*entity.Share, error)
+	ListMountedByUserFunc   func(userID int64) ([]entity.Share, error)
 }
 
 func (m *ShareRepositoryMock) Create(share *entity.Share) (int64, error) {
@@ -420,6 +421,13 @@ func (m *ShareRepositoryMock) Unmount(userID int64, mountHome string) (*entity.S
 func (m *ShareRepositoryMock) GetByMountPath(userID int64, mountHome string) (*entity.Share, error) {
 	if m.GetByMountPathFunc != nil {
 		return m.GetByMountPathFunc(userID, mountHome)
+	}
+	return nil, nil
+}
+
+func (m *ShareRepositoryMock) ListMountedByUser(userID int64) ([]entity.Share, error) {
+	if m.ListMountedByUserFunc != nil {
+		return m.ListMountedByUserFunc(userID)
 	}
 	return nil, nil
 }

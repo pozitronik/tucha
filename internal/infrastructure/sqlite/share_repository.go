@@ -143,6 +143,19 @@ func (r *ShareRepository) GetByMountPath(userID int64, mountHome string) (*entit
 	return scanShare(row)
 }
 
+// ListMountedByUser returns all accepted shares mounted by the given user.
+func (r *ShareRepository) ListMountedByUser(userID int64) ([]entity.Share, error) {
+	rows, err := r.db.Query(
+		`SELECT `+shareColumns+` FROM shares WHERE mount_user_id = ? AND status = 'accepted' ORDER BY mount_home ASC`,
+		userID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("listing mounted shares: %w", err)
+	}
+	defer rows.Close()
+	return scanShares(rows)
+}
+
 // scanShare scans a single share row into an entity.Share.
 func scanShare(s interface{ Scan(...any) error }) (*entity.Share, error) {
 	var (

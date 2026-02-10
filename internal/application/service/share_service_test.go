@@ -432,3 +432,202 @@ func TestShareService_Reject_wrongUser(t *testing.T) {
 		t.Errorf("Reject(wrong user) error = %v, want ErrForbidden", err)
 	}
 }
+
+func TestShareService_ListMountedIn_rootLevel(t *testing.T) {
+	uid := int64(2)
+	mountedShare := entity.Share{
+		ID:        1,
+		OwnerID:   1,
+		Home:      vo.NewCloudPath("/Documents"),
+		MountHome: "/SharedDocs",
+		Status:    vo.ShareAccepted,
+	}
+	mountedShare.MountUserID = &uid
+
+	svc := NewShareService(
+		&mock.ShareRepositoryMock{
+			ListMountedByUserFunc: func(userID int64) ([]entity.Share, error) {
+				return []entity.Share{mountedShare}, nil
+			},
+		},
+		&mock.NodeRepositoryMock{},
+		&mock.ContentRepositoryMock{},
+		&mock.UserRepositoryMock{},
+	)
+
+	shares, err := svc.ListMountedIn(uid, vo.NewCloudPath("/"))
+	if err != nil {
+		t.Fatalf("ListMountedIn: %v", err)
+	}
+	if len(shares) != 1 {
+		t.Fatalf("len = %d, want 1", len(shares))
+	}
+	if shares[0].MountHome != "/SharedDocs" {
+		t.Errorf("MountHome = %q, want %q", shares[0].MountHome, "/SharedDocs")
+	}
+}
+
+func TestShareService_ListMountedIn_nested(t *testing.T) {
+	uid := int64(2)
+	// Mount at /a/b -- parent is /a, not /
+	mountedShare := entity.Share{
+		ID:        1,
+		OwnerID:   1,
+		Home:      vo.NewCloudPath("/Documents"),
+		MountHome: "/a/b",
+		Status:    vo.ShareAccepted,
+	}
+	mountedShare.MountUserID = &uid
+
+	svc := NewShareService(
+		&mock.ShareRepositoryMock{
+			ListMountedByUserFunc: func(userID int64) ([]entity.Share, error) {
+				return []entity.Share{mountedShare}, nil
+			},
+		},
+		&mock.NodeRepositoryMock{},
+		&mock.ContentRepositoryMock{},
+		&mock.UserRepositoryMock{},
+	)
+
+	// Should NOT appear in root listing.
+	shares, err := svc.ListMountedIn(uid, vo.NewCloudPath("/"))
+	if err != nil {
+		t.Fatalf("ListMountedIn: %v", err)
+	}
+	if len(shares) != 0 {
+		t.Errorf("root: len = %d, want 0", len(shares))
+	}
+
+	// Should appear in /a listing.
+	shares, err = svc.ListMountedIn(uid, vo.NewCloudPath("/a"))
+	if err != nil {
+		t.Fatalf("ListMountedIn: %v", err)
+	}
+	if len(shares) != 1 {
+		t.Errorf("/a: len = %d, want 1", len(shares))
+	}
+}
+
+func TestShareService_ListMountedIn_empty(t *testing.T) {
+	svc := NewShareService(
+		&mock.ShareRepositoryMock{
+			ListMountedByUserFunc: func(userID int64) ([]entity.Share, error) {
+				return nil, nil
+			},
+		},
+		&mock.NodeRepositoryMock{},
+		&mock.ContentRepositoryMock{},
+		&mock.UserRepositoryMock{},
+	)
+
+	shares, err := svc.ListMountedIn(1, vo.NewCloudPath("/"))
+	if err != nil {
+		t.Fatalf("ListMountedIn: %v", err)
+	}
+	if len(shares) != 0 {
+		t.Errorf("len = %d, want 0", len(shares))
+	}
+}
+
+func TestShareService_ResolveMount_exactMatch(t *testing.T) {
+	uid := int64(2)
+	mountedShare := entity.Share{
+		ID:        1,
+		OwnerID:   1,
+		Home:      vo.NewCloudPath("/Documents"),
+		MountHome: "/SharedDocs",
+		Status:    vo.ShareAccepted,
+	}
+	mountedShare.MountUserID = &uid
+
+	svc := NewShareService(
+		&mock.ShareRepositoryMock{
+			ListMountedByUserFunc: func(userID int64) ([]entity.Share, error) {
+				return []entity.Share{mountedShare}, nil
+			},
+		},
+		&mock.NodeRepositoryMock{},
+		&mock.ContentRepositoryMock{},
+		&mock.UserRepositoryMock{},
+	)
+
+	res, err := svc.ResolveMount(uid, vo.NewCloudPath("/SharedDocs"))
+	if err != nil {
+		t.Fatalf("ResolveMount: %v", err)
+	}
+	if res == nil {
+		t.Fatal("ResolveMount returned nil")
+	}
+	if res.OwnerPath.String() != "/Documents" {
+		t.Errorf("OwnerPath = %q, want %q", res.OwnerPath.String(), "/Documents")
+	}
+	if res.Share.ID != 1 {
+		t.Errorf("Share.ID = %d, want 1", res.Share.ID)
+	}
+}
+
+func TestShareService_ResolveMount_subpath(t *testing.T) {
+	uid := int64(2)
+	mountedShare := entity.Share{
+		ID:        1,
+		OwnerID:   1,
+		Home:      vo.NewCloudPath("/Documents"),
+		MountHome: "/SharedDocs",
+		Status:    vo.ShareAccepted,
+	}
+	mountedShare.MountUserID = &uid
+
+	svc := NewShareService(
+		&mock.ShareRepositoryMock{
+			ListMountedByUserFunc: func(userID int64) ([]entity.Share, error) {
+				return []entity.Share{mountedShare}, nil
+			},
+		},
+		&mock.NodeRepositoryMock{},
+		&mock.ContentRepositoryMock{},
+		&mock.UserRepositoryMock{},
+	)
+
+	res, err := svc.ResolveMount(uid, vo.NewCloudPath("/SharedDocs/sub/file.txt"))
+	if err != nil {
+		t.Fatalf("ResolveMount: %v", err)
+	}
+	if res == nil {
+		t.Fatal("ResolveMount returned nil")
+	}
+	if res.OwnerPath.String() != "/Documents/sub/file.txt" {
+		t.Errorf("OwnerPath = %q, want %q", res.OwnerPath.String(), "/Documents/sub/file.txt")
+	}
+}
+
+func TestShareService_ResolveMount_noMatch(t *testing.T) {
+	uid := int64(2)
+	mountedShare := entity.Share{
+		ID:        1,
+		OwnerID:   1,
+		Home:      vo.NewCloudPath("/Documents"),
+		MountHome: "/SharedDocs",
+		Status:    vo.ShareAccepted,
+	}
+	mountedShare.MountUserID = &uid
+
+	svc := NewShareService(
+		&mock.ShareRepositoryMock{
+			ListMountedByUserFunc: func(userID int64) ([]entity.Share, error) {
+				return []entity.Share{mountedShare}, nil
+			},
+		},
+		&mock.NodeRepositoryMock{},
+		&mock.ContentRepositoryMock{},
+		&mock.UserRepositoryMock{},
+	)
+
+	res, err := svc.ResolveMount(uid, vo.NewCloudPath("/OtherFolder"))
+	if err != nil {
+		t.Fatalf("ResolveMount: %v", err)
+	}
+	if res != nil {
+		t.Errorf("ResolveMount returned non-nil for non-matching path: %+v", res)
+	}
+}

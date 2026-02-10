@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"strings"
 
 	"github.com/pozitronik/tucha/internal/domain/entity"
 	"github.com/pozitronik/tucha/internal/domain/repository"
@@ -203,6 +204,61 @@ func (s *ShareService) Reject(userID int64, inviteToken string) error {
 	}
 
 	return s.shares.Reject(inviteToken)
+}
+
+// ListMountedIn returns accepted shares whose mount point is a direct child of folderPath.
+// For example, if folderPath is "/" and a share is mounted at "/SharedFolder",
+// that share is included. A share mounted at "/a/b" would NOT be included for folderPath="/".
+func (s *ShareService) ListMountedIn(userID int64, folderPath vo.CloudPath) ([]entity.Share, error) {
+	all, err := s.shares.ListMountedByUser(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []entity.Share
+	for _, share := range all {
+		mountPath := vo.NewCloudPath(share.MountHome)
+		if mountPath.Parent().String() == folderPath.String() {
+			result = append(result, share)
+		}
+	}
+	return result, nil
+}
+
+// MountResolution holds the result of resolving a path through a mounted share.
+type MountResolution struct {
+	Share     *entity.Share
+	OwnerPath vo.CloudPath
+}
+
+// ResolveMount checks whether the given path falls under a mounted share for the user.
+// If the path matches a mount point exactly or is a descendant, it returns the share
+// and the corresponding path in the owner's tree.
+// Returns nil if the path does not match any mount.
+func (s *ShareService) ResolveMount(userID int64, path vo.CloudPath) (*MountResolution, error) {
+	all, err := s.shares.ListMountedByUser(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	pathStr := path.String()
+	for i := range all {
+		share := &all[i]
+		mountHome := share.MountHome
+		ownerHome := share.Home.String()
+
+		if pathStr == mountHome {
+			// Exact match: path IS the mount point
+			return &MountResolution{Share: share, OwnerPath: share.Home}, nil
+		}
+		if strings.HasPrefix(pathStr, mountHome+"/") {
+			// Descendant: replace mount prefix with owner prefix
+			suffix := pathStr[len(mountHome):]
+			resolved := vo.NewCloudPath(ownerHome + suffix)
+			return &MountResolution{Share: share, OwnerPath: resolved}, nil
+		}
+	}
+	return nil, nil
 }
 
 // generateInviteToken produces a random 32-character hex string for share tokens.

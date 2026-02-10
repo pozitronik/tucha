@@ -13,6 +13,7 @@ import (
 type FolderHandler struct {
 	auth      *service.AuthService
 	folders   *service.FolderService
+	shares    *service.ShareService
 	publish   *service.PublishService
 	presenter *Presenter
 }
@@ -21,12 +22,14 @@ type FolderHandler struct {
 func NewFolderHandler(
 	auth *service.AuthService,
 	folders *service.FolderService,
+	shares *service.ShareService,
 	publish *service.PublishService,
 	presenter *Presenter,
 ) *FolderHandler {
 	return &FolderHandler{
 		auth:      auth,
 		folders:   folders,
+		shares:    shares,
 		publish:   publish,
 		presenter: presenter,
 	}
@@ -67,8 +70,10 @@ func (h *FolderHandler) HandleFolder(w http.ResponseWriter, r *http.Request) {
 		writeHomeError(w, authed.Email, 500, "unknown")
 		return
 	}
+
+	// Path not in user's own tree -- try resolving through mounted shares.
 	if folder == nil {
-		writeHomeError(w, authed.Email, 404, "not_exists")
+		h.handleMountedFolder(w, authed, path, offset, limit)
 		return
 	}
 
@@ -95,8 +100,102 @@ func (h *FolderHandler) HandleFolder(w http.ResponseWriter, r *http.Request) {
 		items = append(items, h.presenter.NodeToFolderItem(child, subCount))
 	}
 
+	// Merge mounted shares that are direct children of this folder.
+	mountedShares, err := h.shares.ListMountedIn(authed.UserID, path)
+	if err == nil {
+		for i := range mountedShares {
+			ms := &mountedShares[i]
+			// Look up the owner's folder node to get size/tree info.
+			ownerFolder, _ := h.folders.Get(ms.OwnerID, ms.Home)
+			var subCount *FolderCount
+			if ownerFolder != nil {
+				sf, sfi, _ := h.folders.CountChildren(ms.OwnerID, ms.Home)
+				subCount = &FolderCount{Folders: sf, Files: sfi}
+			}
+			items = append(items, h.presenter.MountedShareToFolderItem(ms, ownerFolder, subCount, ms.MountHome))
+			folderCount++
+		}
+	}
+
 	count := FolderCount{Folders: folderCount, Files: fileCount}
 	listing := h.presenter.BuildFolderListing(folder, count, items)
+
+	writeSuccess(w, authed.Email, listing)
+}
+
+// handleMountedFolder serves a folder listing for a path resolved through mounted shares.
+// If the path doesn't match any mount, returns 404.
+func (h *FolderHandler) handleMountedFolder(w http.ResponseWriter, authed *service.AuthenticatedUser, path vo.CloudPath, offset, limit int) {
+	resolution, err := h.shares.ResolveMount(authed.UserID, path)
+	if err != nil {
+		writeHomeError(w, authed.Email, 500, "unknown")
+		return
+	}
+	if resolution == nil {
+		writeHomeError(w, authed.Email, 404, "not_exists")
+		return
+	}
+
+	ownerFolder, err := h.folders.Get(resolution.Share.OwnerID, resolution.OwnerPath)
+	if err != nil {
+		writeHomeError(w, authed.Email, 500, "unknown")
+		return
+	}
+	if ownerFolder == nil {
+		writeHomeError(w, authed.Email, 404, "not_exists")
+		return
+	}
+
+	children, err := h.folders.ListChildren(resolution.Share.OwnerID, resolution.OwnerPath, offset, limit)
+	if err != nil {
+		writeHomeError(w, authed.Email, 500, "unknown")
+		return
+	}
+
+	folderCount, fileCount, err := h.folders.CountChildren(resolution.Share.OwnerID, resolution.OwnerPath)
+	if err != nil {
+		writeHomeError(w, authed.Email, 500, "unknown")
+		return
+	}
+
+	// Remap children paths: replace owner prefix with mount prefix.
+	ownerPrefix := resolution.OwnerPath.String()
+	mountPrefix := path.String()
+
+	// Determine the kind: "shared" at mount root, "folder" for deeper subfolders.
+	kind := "folder"
+	if resolution.OwnerPath.String() == resolution.Share.Home.String() {
+		kind = "shared"
+	}
+
+	items := make([]FolderItem, 0, len(children))
+	for i := range children {
+		child := &children[i]
+		var subCount *FolderCount
+		if child.IsFolder() {
+			sf, sfi, _ := h.folders.CountChildren(resolution.Share.OwnerID, child.Home)
+			subCount = &FolderCount{Folders: sf, Files: sfi}
+		}
+		item := h.presenter.NodeToFolderItem(child, subCount)
+		// Remap the home path from owner's namespace to mount namespace.
+		item.Home = strings.Replace(item.Home, ownerPrefix, mountPrefix, 1)
+		items = append(items, item)
+	}
+
+	count := FolderCount{Folders: folderCount, Files: fileCount}
+	listing := FolderListing{
+		Count: count,
+		Tree:  ownerFolder.Tree,
+		Name:  vo.NewCloudPath(mountPrefix).Name(),
+		GRev:  ownerFolder.GRev,
+		Size:  ownerFolder.Size,
+		Sort:  SortInfo{Order: "asc", Type: "name"},
+		Kind:  kind,
+		Rev:   ownerFolder.Rev,
+		Type:  "folder",
+		Home:  mountPrefix,
+		List:  items,
+	}
 
 	writeSuccess(w, authed.Email, listing)
 }
