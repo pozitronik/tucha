@@ -10,11 +10,15 @@ import (
 	"github.com/pozitronik/tucha/internal/domain/vo"
 )
 
+// mountKindShared is the kind value used for mount-root folders.
+const mountKindShared = "shared"
+
 // FileHandler handles file metadata, CRUD operations, and file registration by hash.
 type FileHandler struct {
 	auth      *service.AuthService
 	files     *service.FileService
 	trash     *service.TrashService
+	shares    *service.ShareService
 	presenter *Presenter
 }
 
@@ -23,12 +27,14 @@ func NewFileHandler(
 	auth *service.AuthService,
 	files *service.FileService,
 	trash *service.TrashService,
+	shares *service.ShareService,
 	presenter *Presenter,
 ) *FileHandler {
 	return &FileHandler{
 		auth:      auth,
 		files:     files,
 		trash:     trash,
+		shares:    shares,
 		presenter: presenter,
 	}
 }
@@ -52,8 +58,10 @@ func (h *FileHandler) HandleFile(w http.ResponseWriter, r *http.Request) {
 		writeHomeError(w, authed.Email, 500, "unknown")
 		return
 	}
+
 	if node == nil {
-		writeHomeError(w, authed.Email, 404, "not_exists")
+		// Path not found in user's own tree -- try mounted shares.
+		h.handleMountedFile(w, authed, path)
 		return
 	}
 
@@ -64,6 +72,50 @@ func (h *FileHandler) HandleFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	item := h.presenter.NodeToFolderItem(node, subCount)
+	writeSuccess(w, authed.Email, item)
+}
+
+// handleMountedFile resolves the path through mounted shares and returns file/folder metadata.
+// Returns 404 if the path does not match any mount.
+func (h *FileHandler) handleMountedFile(w http.ResponseWriter, authed *service.AuthenticatedUser, path vo.CloudPath) {
+	resolution, err := h.shares.ResolveMount(authed.UserID, path)
+	if err != nil {
+		writeHomeError(w, authed.Email, 500, "unknown")
+		return
+	}
+	if resolution == nil {
+		writeHomeError(w, authed.Email, 404, "not_exists")
+		return
+	}
+
+	node, err := h.files.Get(resolution.Share.OwnerID, resolution.OwnerPath)
+	if err != nil {
+		writeHomeError(w, authed.Email, 500, "unknown")
+		return
+	}
+	if node == nil {
+		writeHomeError(w, authed.Email, 404, "not_exists")
+		return
+	}
+
+	var subCount *FolderCount
+	if node.IsFolder() {
+		sf, sfi, _ := h.files.CountChildren(resolution.Share.OwnerID, node.Home)
+		subCount = &FolderCount{Folders: sf, Files: sfi}
+	}
+
+	item := h.presenter.NodeToFolderItem(node, subCount)
+
+	// Remap home path from owner's namespace to mount namespace.
+	ownerPrefix := resolution.OwnerPath.String()
+	mountPrefix := path.String()
+	item.Home = strings.Replace(item.Home, ownerPrefix, mountPrefix, 1)
+
+	// At the mount root, report kind as "shared".
+	if resolution.OwnerPath.String() == resolution.Share.Home.String() && node.IsFolder() {
+		item.Kind = mountKindShared
+	}
+
 	writeSuccess(w, authed.Email, item)
 }
 

@@ -16,11 +16,12 @@ type UploadHandler struct {
 	auth    *service.AuthService
 	uploads *service.UploadService
 	files   *service.FileService
+	shares  *service.ShareService
 }
 
 // NewUploadHandler creates a new UploadHandler.
-func NewUploadHandler(auth *service.AuthService, uploads *service.UploadService, files *service.FileService) *UploadHandler {
-	return &UploadHandler{auth: auth, uploads: uploads, files: files}
+func NewUploadHandler(auth *service.AuthService, uploads *service.UploadService, files *service.FileService, shares *service.ShareService) *UploadHandler {
+	return &UploadHandler{auth: auth, uploads: uploads, files: files, shares: shares}
 }
 
 // HandleUpload handles PUT /upload/ - upload binary, return hash.
@@ -68,8 +69,21 @@ func (h *UploadHandler) HandleUpload(w http.ResponseWriter, r *http.Request) {
 	// This matches the real API where PUT /upload/home=/path stores AND registers.
 	if homePath := parseUploadHome(r.URL.Path); homePath != "" {
 		path := vo.NewCloudPath(homePath)
+		targetUserID := authed.UserID
+		targetPath := path
+
+		// Check if the path falls under a mounted share.
+		if resolution, mErr := h.shares.ResolveMount(authed.UserID, path); mErr == nil && resolution != nil {
+			if resolution.Share.Access == vo.AccessReadOnly {
+				http.Error(w, "Forbidden", http.StatusForbidden)
+				return
+			}
+			targetUserID = resolution.Share.OwnerID
+			targetPath = resolution.OwnerPath
+		}
+
 		// Use ConflictReplace so re-uploads overwrite the existing node and append a version entry.
-		_, _ = h.files.AddByHash(authed.UserID, path, hash, int64(len(data)), vo.ConflictReplace)
+		_, _ = h.files.AddByHash(targetUserID, targetPath, hash, int64(len(data)), vo.ConflictReplace)
 	}
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")

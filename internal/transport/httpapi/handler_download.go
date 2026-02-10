@@ -14,13 +14,15 @@ import (
 type DownloadHandler struct {
 	auth      *service.AuthService
 	downloads *service.DownloadService
+	shares    *service.ShareService
 }
 
 // NewDownloadHandler creates a new DownloadHandler.
-func NewDownloadHandler(auth *service.AuthService, downloads *service.DownloadService) *DownloadHandler {
+func NewDownloadHandler(auth *service.AuthService, downloads *service.DownloadService, shares *service.ShareService) *DownloadHandler {
 	return &DownloadHandler{
 		auth:      auth,
 		downloads: downloads,
+		shares:    shares,
 	}
 }
 
@@ -59,8 +61,17 @@ func (h *DownloadHandler) HandleDownload(w http.ResponseWriter, r *http.Request)
 	path := vo.NewCloudPath(cloudPath)
 	result, err := h.downloads.Resolve(authed.UserID, path)
 	if err != nil {
-		http.Error(w, "Not found", http.StatusNotFound)
-		return
+		// Path not found in user's own tree -- try mounted shares.
+		resolution, mErr := h.shares.ResolveMount(authed.UserID, path)
+		if mErr != nil || resolution == nil {
+			http.Error(w, "Not found", http.StatusNotFound)
+			return
+		}
+		result, err = h.downloads.Resolve(resolution.Share.OwnerID, resolution.OwnerPath)
+		if err != nil {
+			http.Error(w, "Not found", http.StatusNotFound)
+			return
+		}
 	}
 	defer result.File.Close()
 
