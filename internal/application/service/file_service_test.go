@@ -301,6 +301,72 @@ func TestFileService_AddByHash_recordsVersion(t *testing.T) {
 	}
 }
 
+func TestFileService_AddByHash_twoCallsAccumulateVersions(t *testing.T) {
+	hash1 := mock.ValidHash()
+	hash2, _ := vo.NewContentHash("BBBB000000000000000000000000000000000002")
+	var versions []entity.FileVersion
+	fileExists := false
+
+	svc := newFileServiceWithVersions(
+		&mock.NodeRepositoryMock{
+			ExistsFunc: func(userID int64, path vo.CloudPath) (bool, error) {
+				return fileExists, nil
+			},
+			DeleteFunc: func(userID int64, path vo.CloudPath) error {
+				fileExists = false
+				return nil
+			},
+			CreateFileFunc: func(userID int64, path vo.CloudPath, hash vo.ContentHash, size int64) (*entity.Node, error) {
+				fileExists = true
+				return mock.NewTestFileNode(userID, path.String(), hash, size), nil
+			},
+		},
+		&mock.ContentRepositoryMock{
+			ExistsFunc: func(h vo.ContentHash) (bool, error) { return true, nil },
+		},
+		&mock.ContentStorageMock{},
+		&mock.UserRepositoryMock{
+			GetByIDFunc: func(id int64) (*entity.User, error) {
+				return &entity.User{ID: 1, QuotaBytes: 1073741824}, nil
+			},
+		},
+		&mock.FileVersionRepositoryMock{
+			InsertFunc: func(version *entity.FileVersion) error {
+				versions = append(versions, *version)
+				return nil
+			},
+		},
+	)
+
+	// First call: create file.
+	_, err := svc.AddByHash(1, vo.NewCloudPath("/test/file.bin"), hash1, 1024, vo.ConflictRename)
+	if err != nil {
+		t.Fatalf("AddByHash (1st): %v", err)
+	}
+
+	// Second call: overwrite with ConflictReplace.
+	_, err = svc.AddByHash(1, vo.NewCloudPath("/test/file.bin"), hash2, 2048, vo.ConflictReplace)
+	if err != nil {
+		t.Fatalf("AddByHash (2nd): %v", err)
+	}
+
+	if len(versions) != 2 {
+		t.Fatalf("len(versions) = %d, want 2", len(versions))
+	}
+	if versions[0].Hash != hash1 {
+		t.Errorf("versions[0].Hash = %v, want %v", versions[0].Hash, hash1)
+	}
+	if versions[0].Size != 1024 {
+		t.Errorf("versions[0].Size = %d, want 1024", versions[0].Size)
+	}
+	if versions[1].Hash != hash2 {
+		t.Errorf("versions[1].Hash = %v, want %v", versions[1].Hash, hash2)
+	}
+	if versions[1].Size != 2048 {
+		t.Errorf("versions[1].Size = %d, want 2048", versions[1].Size)
+	}
+}
+
 func TestFileService_AddByHash_versionRecordingErrorIgnored(t *testing.T) {
 	hash := mock.ValidHash()
 
