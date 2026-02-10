@@ -103,6 +103,19 @@ func (r *ShareRepository) ListIncoming(email string) ([]entity.Share, error) {
 	return scanShares(rows)
 }
 
+// Reinvite updates the access level of an existing share. If the share was
+// rejected, its status is reset to pending.
+func (r *ShareRepository) Reinvite(id int64, access vo.AccessLevel) error {
+	_, err := r.db.Exec(
+		`UPDATE shares SET access = ?, status = CASE WHEN status = 'rejected' THEN 'pending' ELSE status END WHERE id = ?`,
+		access.String(), id,
+	)
+	if err != nil {
+		return fmt.Errorf("reinviting share: %w", err)
+	}
+	return nil
+}
+
 // Accept transitions a share to "accepted" and records the mount details.
 func (r *ShareRepository) Accept(inviteToken string, mountUserID int64, mountHome string) error {
 	_, err := r.db.Exec(

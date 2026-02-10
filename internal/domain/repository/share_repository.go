@@ -31,6 +31,10 @@ type ShareRepository interface {
 	// ListIncoming returns all pending and accepted shares where the invited email matches.
 	ListIncoming(email string) ([]entity.Share, error)
 
+	// Reinvite updates the access level of an existing share. If the share was
+	// rejected, its status is reset to pending so the recipient sees it again.
+	Reinvite(id int64, access vo.AccessLevel) error
+
 	// Accept transitions a share to "accepted" and records the mount details.
 	Accept(inviteToken string, mountUserID int64, mountHome string) error
 

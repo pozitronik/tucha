@@ -349,6 +349,7 @@ type ShareRepositoryMock struct {
 	ListByOwnerPathFunc       func(ownerID int64, home vo.CloudPath) ([]entity.Share, error)
 	ListByOwnerPathPrefixFunc func(ownerID int64, path vo.CloudPath) ([]entity.Share, error)
 	ListIncomingFunc          func(email string) ([]entity.Share, error)
+	ReinviteFunc              func(id int64, access vo.AccessLevel) error
 	AcceptFunc                func(inviteToken string, mountUserID int64, mountHome string) error
 	RejectFunc                func(inviteToken string) error
 	UnmountFunc               func(userID int64, mountHome string) (*entity.Share, error)
@@ -389,6 +390,13 @@ func (m *ShareRepositoryMock) ListByOwnerPath(ownerID int64, home vo.CloudPath) 
 		return m.ListByOwnerPathFunc(ownerID, home)
 	}
 	return nil, nil
+}
+
+func (m *ShareRepositoryMock) Reinvite(id int64, access vo.AccessLevel) error {
+	if m.ReinviteFunc != nil {
+		return m.ReinviteFunc(id, access)
+	}
+	return nil
 }
 
 func (m *ShareRepositoryMock) ListByOwnerPathPrefix(ownerID int64, path vo.CloudPath) ([]entity.Share, error) {

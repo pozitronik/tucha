@@ -73,15 +73,21 @@ func TestShareService_Share_folderNotFound(t *testing.T) {
 	}
 }
 
-func TestShareService_Share_idempotent(t *testing.T) {
+func TestShareService_Share_idempotent_sameAccess(t *testing.T) {
 	folder := mock.NewTestNode(1, "/shared", vo.NodeTypeFolder)
 	owner := mock.NewTestUser(1, "owner@example.com")
 	existing := mock.NewTestShare(1, "/shared", "user@example.com")
+	existing.Access = vo.AccessReadOnly
 
+	reinviteCalled := false
 	svc := NewShareService(
 		&mock.ShareRepositoryMock{
 			GetByOwnerPathEmailFunc: func(ownerID int64, home vo.CloudPath, email string) (*entity.Share, error) {
 				return existing, nil
+			},
+			ReinviteFunc: func(id int64, access vo.AccessLevel) error {
+				reinviteCalled = true
+				return nil
 			},
 		},
 		&mock.NodeRepositoryMock{
@@ -95,10 +101,90 @@ func TestShareService_Share_idempotent(t *testing.T) {
 
 	share, err := svc.Share(1, vo.NewCloudPath("/shared"), "user@example.com", vo.AccessReadOnly)
 	if err != nil {
-		t.Fatalf("Share(idempotent): %v", err)
+		t.Fatalf("Share(idempotent same access): %v", err)
 	}
 	if share.ID != existing.ID {
 		t.Error("should return existing share")
+	}
+	if reinviteCalled {
+		t.Error("Reinvite should not be called when access is unchanged")
+	}
+}
+
+func TestShareService_Share_updateAccess(t *testing.T) {
+	folder := mock.NewTestNode(1, "/shared", vo.NodeTypeFolder)
+	owner := mock.NewTestUser(1, "owner@example.com")
+	existing := mock.NewTestShare(1, "/shared", "user@example.com")
+	existing.Access = vo.AccessReadWrite
+
+	var reinvitedAccess vo.AccessLevel
+	svc := NewShareService(
+		&mock.ShareRepositoryMock{
+			GetByOwnerPathEmailFunc: func(ownerID int64, home vo.CloudPath, email string) (*entity.Share, error) {
+				return existing, nil
+			},
+			ReinviteFunc: func(id int64, access vo.AccessLevel) error {
+				reinvitedAccess = access
+				return nil
+			},
+		},
+		&mock.NodeRepositoryMock{
+			GetFunc: func(userID int64, path vo.CloudPath) (*entity.Node, error) { return folder, nil },
+		},
+		&mock.ContentRepositoryMock{},
+		&mock.UserRepositoryMock{
+			GetByIDFunc: func(id int64) (*entity.User, error) { return owner, nil },
+		},
+	)
+
+	share, err := svc.Share(1, vo.NewCloudPath("/shared"), "user@example.com", vo.AccessReadOnly)
+	if err != nil {
+		t.Fatalf("Share(update access): %v", err)
+	}
+	if share.Access != vo.AccessReadOnly {
+		t.Errorf("returned share Access = %q, want %q", share.Access, vo.AccessReadOnly)
+	}
+	if reinvitedAccess != vo.AccessReadOnly {
+		t.Errorf("Reinvite called with access = %q, want %q", reinvitedAccess, vo.AccessReadOnly)
+	}
+}
+
+func TestShareService_Share_reinviteRejected(t *testing.T) {
+	folder := mock.NewTestNode(1, "/shared", vo.NodeTypeFolder)
+	owner := mock.NewTestUser(1, "owner@example.com")
+	existing := mock.NewTestShare(1, "/shared", "user@example.com")
+	existing.Access = vo.AccessReadOnly
+	existing.Status = vo.ShareRejected
+
+	reinviteCalled := false
+	svc := NewShareService(
+		&mock.ShareRepositoryMock{
+			GetByOwnerPathEmailFunc: func(ownerID int64, home vo.CloudPath, email string) (*entity.Share, error) {
+				return existing, nil
+			},
+			ReinviteFunc: func(id int64, access vo.AccessLevel) error {
+				reinviteCalled = true
+				return nil
+			},
+		},
+		&mock.NodeRepositoryMock{
+			GetFunc: func(userID int64, path vo.CloudPath) (*entity.Node, error) { return folder, nil },
+		},
+		&mock.ContentRepositoryMock{},
+		&mock.UserRepositoryMock{
+			GetByIDFunc: func(id int64) (*entity.User, error) { return owner, nil },
+		},
+	)
+
+	share, err := svc.Share(1, vo.NewCloudPath("/shared"), "user@example.com", vo.AccessReadOnly)
+	if err != nil {
+		t.Fatalf("Share(reinvite rejected): %v", err)
+	}
+	if !reinviteCalled {
+		t.Error("Reinvite should be called for rejected shares even with same access")
+	}
+	if share.Status != vo.SharePending {
+		t.Errorf("returned share Status = %q, want %q", share.Status, vo.SharePending)
 	}
 }
 

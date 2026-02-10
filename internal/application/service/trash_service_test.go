@@ -221,3 +221,121 @@ func TestTrashService_Empty_contentCleanup(t *testing.T) {
 		t.Error("content was not deleted from disk")
 	}
 }
+
+func TestTrashService_Trash_deletesShareRecords(t *testing.T) {
+	folder := mock.NewTestNode(1, "/shared", vo.NodeTypeFolder)
+	pendingShare := entity.Share{ID: 10, OwnerID: 1, Home: vo.NewCloudPath("/shared"), Access: vo.AccessReadOnly, Status: vo.SharePending}
+	mountUserID := int64(2)
+	mountedRWShare := entity.Share{ID: 20, OwnerID: 1, Home: vo.NewCloudPath("/shared"), Access: vo.AccessReadWrite, Status: vo.ShareAccepted, MountHome: "/Mounted", MountUserID: &mountUserID}
+
+	var deletedIDs []int64
+	var ensurePathCalled bool
+
+	svc := NewTrashService(
+		&mock.NodeRepositoryMock{
+			GetWithDescendantsFunc: func(userID int64, path vo.CloudPath) (*entity.Node, []entity.Node, error) {
+				return folder, nil, nil
+			},
+			EnsurePathFunc: func(userID int64, path vo.CloudPath) error {
+				ensurePathCalled = true
+				return nil
+			},
+			ListChildrenFunc: func(userID int64, path vo.CloudPath, offset, limit int) ([]entity.Node, error) {
+				return nil, nil
+			},
+		},
+		&mock.TrashRepositoryMock{
+			InsertFunc: func(userID int64, n *entity.Node, descendants []entity.Node, deletedBy int64) error {
+				return nil
+			},
+		},
+		&mock.ContentRepositoryMock{},
+		&mock.ContentStorageMock{},
+		&mock.ShareRepositoryMock{
+			ListByOwnerPathPrefixFunc: func(ownerID int64, path vo.CloudPath) ([]entity.Share, error) {
+				return []entity.Share{pendingShare, mountedRWShare}, nil
+			},
+			DeleteFunc: func(id int64) error {
+				deletedIDs = append(deletedIDs, id)
+				return nil
+			},
+		},
+	)
+
+	err := svc.Trash(1, vo.NewCloudPath("/shared"), 1)
+	if err != nil {
+		t.Fatalf("Trash: %v", err)
+	}
+
+	// Both shares should be deleted.
+	if len(deletedIDs) != 2 {
+		t.Fatalf("deleted %d shares, want 2", len(deletedIDs))
+	}
+	if deletedIDs[0] != 10 || deletedIDs[1] != 20 {
+		t.Errorf("deleted IDs = %v, want [10, 20]", deletedIDs)
+	}
+
+	// Mounted RW share should trigger clone (EnsurePath called for mount user).
+	if !ensurePathCalled {
+		t.Error("EnsurePath was not called for RW mount clone")
+	}
+}
+
+func TestTrashService_Trash_noSharesFound(t *testing.T) {
+	folder := mock.NewTestNode(1, "/noshares", vo.NodeTypeFolder)
+
+	svc := NewTrashService(
+		&mock.NodeRepositoryMock{
+			GetWithDescendantsFunc: func(userID int64, path vo.CloudPath) (*entity.Node, []entity.Node, error) {
+				return folder, nil, nil
+			},
+		},
+		&mock.TrashRepositoryMock{
+			InsertFunc: func(userID int64, n *entity.Node, descendants []entity.Node, deletedBy int64) error {
+				return nil
+			},
+		},
+		&mock.ContentRepositoryMock{},
+		&mock.ContentStorageMock{},
+		&mock.ShareRepositoryMock{
+			ListByOwnerPathPrefixFunc: func(ownerID int64, path vo.CloudPath) ([]entity.Share, error) {
+				return nil, nil
+			},
+		},
+	)
+
+	err := svc.Trash(1, vo.NewCloudPath("/noshares"), 1)
+	if err != nil {
+		t.Fatalf("Trash: %v", err)
+	}
+}
+
+func TestTrashService_Trash_shareListError(t *testing.T) {
+	folder := mock.NewTestNode(1, "/shared", vo.NodeTypeFolder)
+
+	svc := NewTrashService(
+		&mock.NodeRepositoryMock{
+			GetWithDescendantsFunc: func(userID int64, path vo.CloudPath) (*entity.Node, []entity.Node, error) {
+				return folder, nil, nil
+			},
+		},
+		&mock.TrashRepositoryMock{
+			InsertFunc: func(userID int64, n *entity.Node, descendants []entity.Node, deletedBy int64) error {
+				return nil
+			},
+		},
+		&mock.ContentRepositoryMock{},
+		&mock.ContentStorageMock{},
+		&mock.ShareRepositoryMock{
+			ListByOwnerPathPrefixFunc: func(ownerID int64, path vo.CloudPath) ([]entity.Share, error) {
+				return nil, errors.New("database error")
+			},
+		},
+	)
+
+	// Trash should still succeed even if share lookup fails (best-effort cleanup).
+	err := svc.Trash(1, vo.NewCloudPath("/shared"), 1)
+	if err != nil {
+		t.Fatalf("Trash should succeed despite share list error: %v", err)
+	}
+}

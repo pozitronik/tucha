@@ -56,12 +56,22 @@ func (s *ShareService) Share(ownerID int64, home vo.CloudPath, email string, acc
 		return nil, ErrForbidden
 	}
 
-	// Check for existing share.
+	// Check for existing share -- UNIQUE(owner_id, home, invited_email) allows at most one.
 	existing, err := s.shares.GetByOwnerPathEmail(ownerID, home, email)
 	if err != nil {
 		return nil, err
 	}
 	if existing != nil {
+		// Update access level and re-invite if access changed or share was rejected.
+		if existing.Access != access || existing.Status == vo.ShareRejected {
+			if err := s.shares.Reinvite(existing.ID, access); err != nil {
+				return nil, err
+			}
+			existing.Access = access
+			if existing.Status == vo.ShareRejected {
+				existing.Status = vo.SharePending
+			}
+		}
 		return existing, nil
 	}
 
