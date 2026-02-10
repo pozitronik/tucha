@@ -13,6 +13,7 @@ type TrashService struct {
 	trash    repository.TrashRepository
 	contents repository.ContentRepository
 	storage  port.ContentStorage
+	shares   repository.ShareRepository
 }
 
 // NewTrashService creates a new TrashService.
@@ -21,18 +22,22 @@ func NewTrashService(
 	trash repository.TrashRepository,
 	contents repository.ContentRepository,
 	storage port.ContentStorage,
+	shares repository.ShareRepository,
 ) *TrashService {
 	return &TrashService{
 		nodes:    nodes,
 		trash:    trash,
 		contents: contents,
 		storage:  storage,
+		shares:   shares,
 	}
 }
 
 // Trash soft-deletes a node by moving it (and its descendants) to the trash table,
 // then hard-deleting from nodes. Content ref counts are NOT decremented -- content
 // remains available while in trash.
+// When a shared folder is trashed, mounted RW shares are cloned into the mount
+// user's tree (so they keep the data), then all share records are removed.
 // No-op if the path does not exist (per protocol).
 func (s *TrashService) Trash(userID int64, path vo.CloudPath, deletedBy int64) error {
 	node, descendants, err := s.nodes.GetWithDescendants(userID, path)
@@ -43,11 +48,51 @@ func (s *TrashService) Trash(userID int64, path vo.CloudPath, deletedBy int64) e
 		return nil
 	}
 
+	// Clone mounted RW shares before the source tree is deleted.
+	affectedShares := s.cloneMountedRWShares(userID, path)
+
 	if err := s.trash.Insert(userID, node, descendants, deletedBy); err != nil {
 		return err
 	}
 
-	return s.nodes.Delete(userID, path)
+	if err := s.nodes.Delete(userID, path); err != nil {
+		return err
+	}
+
+	// Remove all share records pointing at the trashed subtree.
+	s.deleteShares(affectedShares)
+
+	return nil
+}
+
+// cloneMountedRWShares finds shares affected by trashing the given path.
+// For each mounted RW share, it clones the shared content into the mount user's
+// tree so the data persists after the source is deleted.
+// Returns the list of affected shares for later cleanup.
+func (s *TrashService) cloneMountedRWShares(ownerID int64, path vo.CloudPath) []entity.Share {
+	shares, err := s.shares.ListByOwnerPathPrefix(ownerID, path)
+	if err != nil {
+		return nil
+	}
+
+	for i := range shares {
+		share := &shares[i]
+		if !share.IsAccepted() || share.Access != vo.AccessReadWrite || share.MountUserID == nil {
+			continue
+		}
+		mountPath := vo.NewCloudPath(share.MountHome)
+		_ = s.nodes.EnsurePath(*share.MountUserID, mountPath)
+		_ = cloneTree(s.nodes, s.contents, ownerID, share.Home, *share.MountUserID, mountPath)
+	}
+
+	return shares
+}
+
+// deleteShares removes the given share records from the repository.
+func (s *TrashService) deleteShares(shares []entity.Share) {
+	for i := range shares {
+		_ = s.shares.Delete(shares[i].ID)
+	}
 }
 
 // List returns all items in the user's trashbin.

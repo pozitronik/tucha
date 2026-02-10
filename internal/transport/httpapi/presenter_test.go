@@ -159,10 +159,11 @@ func TestPresenter_ShareToMember(t *testing.T) {
 	}
 }
 
-func TestPresenter_ShareToIncomingInvite(t *testing.T) {
+func TestPresenter_ShareToIncomingInvite_pending(t *testing.T) {
 	p := NewPresenter()
 	share := &entity.Share{
 		Home:        vo.NewCloudPath("/shared/folder"),
+		Status:      vo.SharePending,
 		Access:      vo.AccessReadWrite,
 		InviteToken: "invite-abc",
 	}
@@ -177,11 +178,38 @@ func TestPresenter_ShareToIncomingInvite(t *testing.T) {
 	if inv.Name != "folder" {
 		t.Errorf("Name = %q, want %q", inv.Name, "folder")
 	}
-	if inv.Home != "/shared/folder" {
-		t.Errorf("Home = %q, want %q", inv.Home, "/shared/folder")
+	if inv.Home != "" {
+		t.Errorf("Home = %q, want empty for pending invite", inv.Home)
+	}
+	if inv.IsMounted {
+		t.Error("IsMounted = true, want false for pending invite")
 	}
 	if inv.InviteToken != "invite-abc" {
 		t.Errorf("InviteToken = %q", inv.InviteToken)
+	}
+}
+
+func TestPresenter_ShareToIncomingInvite_accepted(t *testing.T) {
+	p := NewPresenter()
+	mountUserID := int64(42)
+	share := &entity.Share{
+		Home:        vo.NewCloudPath("/shared/folder"),
+		Status:      vo.ShareAccepted,
+		Access:      vo.AccessReadOnly,
+		InviteToken: "invite-xyz",
+		MountHome:   "/MountedFolder",
+		MountUserID: &mountUserID,
+	}
+
+	inv := p.ShareToIncomingInvite(share, "owner@example.com")
+	if inv.Home != "/MountedFolder" {
+		t.Errorf("Home = %q, want %q", inv.Home, "/MountedFolder")
+	}
+	if !inv.IsMounted {
+		t.Error("IsMounted = false, want true for accepted invite")
+	}
+	if inv.Name != "folder" {
+		t.Errorf("Name = %q, want %q", inv.Name, "folder")
 	}
 }
 

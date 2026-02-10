@@ -342,17 +342,18 @@ func (m *FileVersionRepositoryMock) ListByPath(userID int64, path vo.CloudPath) 
 
 // ShareRepositoryMock is a test double for repository.ShareRepository.
 type ShareRepositoryMock struct {
-	CreateFunc              func(share *entity.Share) (int64, error)
-	GetByOwnerPathEmailFunc func(ownerID int64, home vo.CloudPath, email string) (*entity.Share, error)
-	GetByInviteTokenFunc    func(token string) (*entity.Share, error)
-	DeleteFunc              func(id int64) error
-	ListByOwnerPathFunc     func(ownerID int64, home vo.CloudPath) ([]entity.Share, error)
-	ListIncomingFunc        func(email string) ([]entity.Share, error)
-	AcceptFunc              func(inviteToken string, mountUserID int64, mountHome string) error
-	RejectFunc              func(inviteToken string) error
-	UnmountFunc             func(userID int64, mountHome string) (*entity.Share, error)
-	GetByMountPathFunc      func(userID int64, mountHome string) (*entity.Share, error)
-	ListMountedByUserFunc   func(userID int64) ([]entity.Share, error)
+	CreateFunc                func(share *entity.Share) (int64, error)
+	GetByOwnerPathEmailFunc   func(ownerID int64, home vo.CloudPath, email string) (*entity.Share, error)
+	GetByInviteTokenFunc      func(token string) (*entity.Share, error)
+	DeleteFunc                func(id int64) error
+	ListByOwnerPathFunc       func(ownerID int64, home vo.CloudPath) ([]entity.Share, error)
+	ListByOwnerPathPrefixFunc func(ownerID int64, path vo.CloudPath) ([]entity.Share, error)
+	ListIncomingFunc          func(email string) ([]entity.Share, error)
+	AcceptFunc                func(inviteToken string, mountUserID int64, mountHome string) error
+	RejectFunc                func(inviteToken string) error
+	UnmountFunc               func(userID int64, mountHome string) (*entity.Share, error)
+	GetByMountPathFunc        func(userID int64, mountHome string) (*entity.Share, error)
+	ListMountedByUserFunc     func(userID int64) ([]entity.Share, error)
 }
 
 func (m *ShareRepositoryMock) Create(share *entity.Share) (int64, error) {
@@ -386,6 +387,13 @@ func (m *ShareRepositoryMock) Delete(id int64) error {
 func (m *ShareRepositoryMock) ListByOwnerPath(ownerID int64, home vo.CloudPath) ([]entity.Share, error) {
 	if m.ListByOwnerPathFunc != nil {
 		return m.ListByOwnerPathFunc(ownerID, home)
+	}
+	return nil, nil
+}
+
+func (m *ShareRepositoryMock) ListByOwnerPathPrefix(ownerID int64, path vo.CloudPath) ([]entity.Share, error) {
+	if m.ListByOwnerPathPrefixFunc != nil {
+		return m.ListByOwnerPathPrefixFunc(ownerID, path)
 	}
 	return nil, nil
 }

@@ -78,7 +78,7 @@ type ShareMember struct {
 	Name   string `json:"name"`
 }
 
-// IncomingInvite represents a pending incoming share invitation.
+// IncomingInvite represents an incoming share invitation (pending or accepted/mounted).
 type IncomingInvite struct {
 	Owner       InviteOwner `json:"owner"`
 	Tree        string      `json:"tree,omitempty"`
@@ -87,6 +87,7 @@ type IncomingInvite struct {
 	Home        string      `json:"home,omitempty"`
 	Size        int64       `json:"size"`
 	InviteToken string      `json:"invite_token"`
+	IsMounted   bool        `json:"is_mounted"`
 }
 
 // InviteOwner represents the owner info within an incoming invite.

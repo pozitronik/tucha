@@ -79,17 +79,25 @@ func (p *Presenter) ShareToMember(share *entity.Share) ShareMember {
 
 // ShareToIncomingInvite converts a Share entity to an IncomingInvite DTO.
 // ownerEmail is the email of the share owner, resolved by the caller.
+// For pending invites, Home is empty. For accepted (mounted) invites, Home
+// is the mount path and IsMounted is true.
 func (p *Presenter) ShareToIncomingInvite(share *entity.Share, ownerEmail string) IncomingInvite {
-	return IncomingInvite{
+	inv := IncomingInvite{
 		Owner: InviteOwner{
 			Email: ownerEmail,
 			Name:  ownerEmail,
 		},
 		Access:      share.Access.APIString(),
 		Name:        share.Home.Name(),
-		Home:        share.Home.String(),
 		InviteToken: share.InviteToken,
 	}
+
+	if share.IsAccepted() {
+		inv.Home = share.MountHome
+		inv.IsMounted = true
+	}
+
+	return inv
 }
 
 // MountedShareToFolderItem converts a mounted share to a FolderItem for display

@@ -24,7 +24,11 @@ type ShareRepository interface {
 	// ListByOwnerPath returns all shares for a given owner and path.
 	ListByOwnerPath(ownerID int64, home vo.CloudPath) ([]entity.Share, error)
 
-	// ListIncoming returns all pending shares where the invited email matches.
+	// ListByOwnerPathPrefix returns all shares where the owner matches and the
+	// shared home path equals the given path or is a descendant of it.
+	ListByOwnerPathPrefix(ownerID int64, path vo.CloudPath) ([]entity.Share, error)
+
+	// ListIncoming returns all pending and accepted shares where the invited email matches.
 	ListIncoming(email string) ([]entity.Share, error)
 
 	// Accept transitions a share to "accepted" and records the mount details.

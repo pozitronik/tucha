@@ -75,10 +75,25 @@ func (r *ShareRepository) ListByOwnerPath(ownerID int64, home vo.CloudPath) ([]e
 	return scanShares(rows)
 }
 
-// ListIncoming returns all pending shares where the invited email matches.
+// ListByOwnerPathPrefix returns all shares where the owner matches and the
+// shared home path equals the given path or is a descendant of it.
+func (r *ShareRepository) ListByOwnerPathPrefix(ownerID int64, path vo.CloudPath) ([]entity.Share, error) {
+	pathStr := path.String()
+	rows, err := r.db.Query(
+		`SELECT `+shareColumns+` FROM shares WHERE owner_id = ? AND (home = ? OR home LIKE ? || '/%') ORDER BY created DESC`,
+		ownerID, pathStr, pathStr,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("listing shares by path prefix: %w", err)
+	}
+	defer rows.Close()
+	return scanShares(rows)
+}
+
+// ListIncoming returns all pending and accepted shares where the invited email matches.
 func (r *ShareRepository) ListIncoming(email string) ([]entity.Share, error) {
 	rows, err := r.db.Query(
-		`SELECT `+shareColumns+` FROM shares WHERE invited_email = ? AND status = 'pending' ORDER BY created DESC`,
+		`SELECT `+shareColumns+` FROM shares WHERE invited_email = ? AND status IN ('pending', 'accepted') ORDER BY created DESC`,
 		email,
 	)
 	if err != nil {

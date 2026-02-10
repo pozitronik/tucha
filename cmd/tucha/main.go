@@ -240,7 +240,7 @@ func runServer(parsed *cli.CLI) {
 	uploadSvc := service.NewUploadService(mrCloudHasher, diskStore, contentRepo)
 	downloadSvc := service.NewDownloadService(nodeRepo, diskStore)
 	thumbnailSvc := service.NewThumbnailService(nodeRepo, diskStore, thumbGen)
-	trashSvc := service.NewTrashService(nodeRepo, trashRepo, contentRepo, diskStore)
+	trashSvc := service.NewTrashService(nodeRepo, trashRepo, contentRepo, diskStore, shareRepo)
 	publishSvc := service.NewPublishService(nodeRepo, contentRepo)
 	shareSvc := service.NewShareService(shareRepo, nodeRepo, contentRepo, userRepo)
 

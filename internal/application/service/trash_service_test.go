@@ -27,6 +27,7 @@ func TestTrashService_Trash_file(t *testing.T) {
 		},
 		&mock.ContentRepositoryMock{},
 		&mock.ContentStorageMock{},
+		&mock.ShareRepositoryMock{},
 	)
 
 	err := svc.Trash(1, vo.NewCloudPath("/file.txt"), 1)
@@ -59,6 +60,7 @@ func TestTrashService_Trash_folderWithDescendants(t *testing.T) {
 		},
 		&mock.ContentRepositoryMock{},
 		&mock.ContentStorageMock{},
+		&mock.ShareRepositoryMock{},
 	)
 
 	err := svc.Trash(1, vo.NewCloudPath("/folder"), 1)
@@ -80,6 +82,7 @@ func TestTrashService_Trash_nonexistent(t *testing.T) {
 		&mock.TrashRepositoryMock{},
 		&mock.ContentRepositoryMock{},
 		&mock.ContentStorageMock{},
+		&mock.ShareRepositoryMock{},
 	)
 
 	err := svc.Trash(1, vo.NewCloudPath("/nonexistent"), 1)
@@ -100,6 +103,7 @@ func TestTrashService_List(t *testing.T) {
 		},
 		&mock.ContentRepositoryMock{},
 		&mock.ContentStorageMock{},
+		&mock.ShareRepositoryMock{},
 	)
 
 	got, err := svc.List(1)
@@ -127,6 +131,7 @@ func TestTrashService_Restore_success(t *testing.T) {
 		},
 		&mock.ContentRepositoryMock{},
 		&mock.ContentStorageMock{},
+		&mock.ShareRepositoryMock{},
 	)
 
 	err := svc.Restore(1, vo.NewCloudPath("/file.txt"), 0, vo.ConflictRename)
@@ -145,6 +150,7 @@ func TestTrashService_Restore_notFound(t *testing.T) {
 		},
 		&mock.ContentRepositoryMock{},
 		&mock.ContentStorageMock{},
+		&mock.ShareRepositoryMock{},
 	)
 
 	err := svc.Restore(1, vo.NewCloudPath("/missing"), 0, vo.ConflictRename)
@@ -167,6 +173,7 @@ func TestTrashService_Restore_conflictStrict(t *testing.T) {
 		},
 		&mock.ContentRepositoryMock{},
 		&mock.ContentStorageMock{},
+		&mock.ShareRepositoryMock{},
 	)
 
 	err := svc.Restore(1, vo.NewCloudPath("/file.txt"), 0, vo.ConflictStrict)
@@ -200,6 +207,7 @@ func TestTrashService_Empty_contentCleanup(t *testing.T) {
 				return nil
 			},
 		},
+		&mock.ShareRepositoryMock{},
 	)
 
 	err := svc.Empty(1)

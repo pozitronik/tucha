@@ -43,6 +43,7 @@ func TestNewTrashHandler(t *testing.T) {
 		&mock.TrashRepositoryMock{},
 		&mock.ContentRepositoryMock{},
 		&mock.ContentStorageMock{},
+		&mock.ShareRepositoryMock{},
 	)
 	presenter := NewPresenter()
 
@@ -61,6 +62,7 @@ func TestTrashHandler_HandleTrashList(t *testing.T) {
 			&mock.TrashRepositoryMock{},
 			&mock.ContentRepositoryMock{},
 			&mock.ContentStorageMock{},
+			&mock.ShareRepositoryMock{},
 		)
 		handler := NewTrashHandler(authSvc, trashSvc, NewPresenter())
 
@@ -86,6 +88,7 @@ func TestTrashHandler_HandleTrashList(t *testing.T) {
 			&mock.TrashRepositoryMock{},
 			&mock.ContentRepositoryMock{},
 			&mock.ContentStorageMock{},
+			&mock.ShareRepositoryMock{},
 		)
 		handler := NewTrashHandler(authSvc, trashSvc, NewPresenter())
 
@@ -111,6 +114,7 @@ func TestTrashHandler_HandleTrashList(t *testing.T) {
 			trashRepo,
 			&mock.ContentRepositoryMock{},
 			&mock.ContentStorageMock{},
+			&mock.ShareRepositoryMock{},
 		)
 		handler := NewTrashHandler(authSvc, trashSvc, NewPresenter())
 
@@ -161,6 +165,7 @@ func TestTrashHandler_HandleTrashList(t *testing.T) {
 			trashRepo,
 			&mock.ContentRepositoryMock{},
 			&mock.ContentStorageMock{},
+			&mock.ShareRepositoryMock{},
 		)
 		handler := NewTrashHandler(authSvc, trashSvc, NewPresenter())
 
@@ -194,6 +199,7 @@ func TestTrashHandler_HandleTrashRestore(t *testing.T) {
 			&mock.TrashRepositoryMock{},
 			&mock.ContentRepositoryMock{},
 			&mock.ContentStorageMock{},
+			&mock.ShareRepositoryMock{},
 		)
 		handler := NewTrashHandler(authSvc, trashSvc, NewPresenter())
 
@@ -214,6 +220,7 @@ func TestTrashHandler_HandleTrashRestore(t *testing.T) {
 			&mock.TrashRepositoryMock{},
 			&mock.ContentRepositoryMock{},
 			&mock.ContentStorageMock{},
+			&mock.ShareRepositoryMock{},
 		)
 		handler := NewTrashHandler(authSvc, trashSvc, NewPresenter())
 
@@ -242,6 +249,7 @@ func TestTrashHandler_HandleTrashRestore(t *testing.T) {
 			&mock.TrashRepositoryMock{},
 			&mock.ContentRepositoryMock{},
 			&mock.ContentStorageMock{},
+			&mock.ShareRepositoryMock{},
 		)
 		handler := NewTrashHandler(authSvc, trashSvc, NewPresenter())
 
@@ -276,6 +284,7 @@ func TestTrashHandler_HandleTrashRestore(t *testing.T) {
 			trashRepo,
 			&mock.ContentRepositoryMock{},
 			&mock.ContentStorageMock{},
+			&mock.ShareRepositoryMock{},
 		)
 		handler := NewTrashHandler(authSvc, trashSvc, NewPresenter())
 
@@ -307,6 +316,7 @@ func TestTrashHandler_HandleTrashEmpty(t *testing.T) {
 			&mock.TrashRepositoryMock{},
 			&mock.ContentRepositoryMock{},
 			&mock.ContentStorageMock{},
+			&mock.ShareRepositoryMock{},
 		)
 		handler := NewTrashHandler(authSvc, trashSvc, NewPresenter())
 
@@ -332,6 +342,7 @@ func TestTrashHandler_HandleTrashEmpty(t *testing.T) {
 			trashRepo,
 			&mock.ContentRepositoryMock{},
 			&mock.ContentStorageMock{},
+			&mock.ShareRepositoryMock{},
 		)
 		handler := NewTrashHandler(authSvc, trashSvc, NewPresenter())
 
@@ -366,6 +377,7 @@ func TestTrashHandler_HandleTrashEmpty(t *testing.T) {
 			trashRepo,
 			&mock.ContentRepositoryMock{},
 			&mock.ContentStorageMock{},
+			&mock.ShareRepositoryMock{},
 		)
 		handler := NewTrashHandler(authSvc, trashSvc, NewPresenter())
 
