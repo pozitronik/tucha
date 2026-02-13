@@ -12,12 +12,14 @@ import (
 
 const schema = `
 CREATE TABLE IF NOT EXISTS users (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    email       TEXT NOT NULL UNIQUE,
-    password    TEXT NOT NULL,
-    is_admin    INTEGER NOT NULL DEFAULT 0,
-    quota_bytes INTEGER NOT NULL DEFAULT 17179869184,
-    created     INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    email            TEXT NOT NULL UNIQUE,
+    password         TEXT NOT NULL,
+    is_admin         INTEGER NOT NULL DEFAULT 0,
+    quota_bytes      INTEGER NOT NULL DEFAULT 17179869184,
+    file_size_limit  INTEGER NOT NULL DEFAULT 0,
+    version_history  INTEGER NOT NULL DEFAULT 0,
+    created          INTEGER NOT NULL DEFAULT (strftime('%s','now'))
 );
 
 CREATE TABLE IF NOT EXISTS nodes (
